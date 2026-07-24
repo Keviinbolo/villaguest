@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "55453466052",
+    "project_id": "villaguest-bc616",
+    "storage_bucket": "villaguest-bc616.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:55453466052:android:e9570aef7fc7ad818a3891",
+        "android_client_info": {
+          "package_name": "com.example.villaguest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgWM1CryseKcfC3PaVivsULcToa9-vtgE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
