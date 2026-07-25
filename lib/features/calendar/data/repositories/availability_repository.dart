@@ -1,15 +1,22 @@
 import 'package:villaguest/features/bookings/data/models/booking_model.dart';
+
 import '../../../../core/services/firebase_service.dart';
 
-
 /// Repositorio de disponibilidad y reservas.
-
+///
+/// Toda la lógica de "¿están estas fechas libres?" y "crear una reserva
+/// sin pisar otra" vive aquí, apoyándose en FirebaseService en vez de
+/// hablar directo con Firestore.
 class AvailabilityRepository {
   static const String _collectionPath = 'bookings';
 
   /// Estados que "ocupan" el calendario. Una reserva cancelada no bloquea
   /// fechas.
-  static const List<String> _activeStatuses = ['pending', 'confirmed', 'completed'];
+  static const List<String> _activeStatuses = [
+    'pending',
+    'confirmed',
+    'completed',
+  ];
 
   final FirebaseService _firebase = FirebaseService.instance;
 
@@ -30,15 +37,25 @@ class AvailabilityRepository {
           collectionPath: _collectionPath,
           queryBuilder: (q) => q.orderBy('checkIn'),
         )
-        .map((snapshot) => snapshot.docs
-            .map((doc) => _fromDoc(doc.id, doc.data()))
-            .toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => _fromDoc(doc.id, doc.data())).toList(),
+        );
   }
 
   /// Reservas que se solapan con [from]-[to] (incluye solapamientos
-  /// parciales). Firestore no permite filtrar dos rangos en la misma
-  /// query, así que acotamos por checkIn en el servidor y filtramos
-  /// checkOut en el cliente.
+  /// parciales).
+  ///
+  /// A propósito, esta query SOLO filtra por [checkIn] en el servidor
+  /// (rango simple → usa el índice automático de un solo campo que
+  /// Firestore crea solo, sin configuración). El filtro por [status] y
+  /// por [checkOut] se hace en el cliente. Para una sola villa con
+  /// volumen bajo de reservas esto es más simple y barato que mantener
+  /// índices compuestos — evita depender de `firestore.indexes.json` o
+  /// de crear índices manualmente cada vez que agregues una query
+  /// nueva. Si en el futuro gestionas muchas propiedades con miles de
+  /// reservas, ahí sí conviene volver a un índice compuesto para no
+  /// traer documentos de más.
   Future<List<BookingModel>> getOverlappingBookings({
     required DateTime from,
     required DateTime to,
@@ -46,14 +63,17 @@ class AvailabilityRepository {
   }) async {
     final snapshot = await _firebase.getCollection(
       collectionPath: _collectionPath,
-      queryBuilder: (q) => q
-          .where('status', whereIn: _activeStatuses)
-          .where('checkIn', isLessThan: to.toIso8601String()),
+      queryBuilder: (q) => q.where('checkIn', isLessThan: to.toIso8601String()),
     );
 
     return snapshot.docs
         .map((doc) => _fromDoc(doc.id, doc.data()))
-        .where((b) => b.id != excludeBookingId && b.checkOut.isAfter(from))
+        .where(
+          (b) =>
+              b.id != excludeBookingId &&
+              _activeStatuses.contains(b.status) &&
+              b.checkOut.isAfter(from),
+        )
         .toList();
   }
 

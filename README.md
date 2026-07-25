@@ -66,8 +66,8 @@ Esta app nace para solucionar el caos del **alquiler directo**: múltiples llama
 ## 🚀 Hoja de Ruta (Roadmap)
 
 - [x] Configuración inicial del proyecto Flutter + PWA manifest.
-- [ ] Integración con Firebase Firestore.
-- [ ] Módulo de Calendario y creación de reservas.
+- [x] Integración con Firebase Firestore.
+- [x] Módulo de Calendario y creación de reservas.
 - [ ] Pasarela de pago con Stripe (Checkout Session).
 - [ ] Conexión con WhatsApp Cloud API (webhooks).
 - [ ] Panel de administración (dashboard financiero).

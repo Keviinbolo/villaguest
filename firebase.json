@@ -1,1 +1,31 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"villaguest-bc616","appId":"1:55453466052:android:e9570aef7fc7ad818a3891","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"villaguest-bc616","configurations":{"android":"1:55453466052:android:e9570aef7fc7ad818a3891","ios":"1:55453466052:ios:14d0d3787ed440b38a3891","macos":"1:55453466052:ios:14d0d3787ed440b38a3891","web":"1:55453466052:web:280cb6d03107737a8a3891","windows":"1:55453466052:web:6801f509c80bd88a8a3891"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "villaguest-bc616",
+          "appId": "1:55453466052:android:e9570aef7fc7ad818a3891",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "villaguest-bc616",
+          "configurations": {
+            "android": "1:55453466052:android:e9570aef7fc7ad818a3891",
+            "ios": "1:55453466052:ios:14d0d3787ed440b38a3891",
+            "macos": "1:55453466052:ios:14d0d3787ed440b38a3891",
+            "web": "1:55453466052:web:280cb6d03107737a8a3891",
+            "windows": "1:55453466052:web:6801f509c80bd88a8a3891"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "europe-southwest1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
