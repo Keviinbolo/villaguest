@@ -3,18 +3,57 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Solo usuarios autenticados (tú, el administrador) pueden leer o
-    // escribir reservas. No hay registro público en esta app, así que
-    // "autenticado" es equivalente a "eres tú".
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function userRoleDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // Por compatibilidad hacia atrás: si tu cuenta de administrador
+    // original todavía no tiene un documento en /users, se sigue
+    // tratando como admin. Cuentas de staff SIEMPRE deben tener su
+    // documento explícito con role == 'staff' — nunca hay una cuenta
+    // que "por defecto" termine siendo staff.
+    function isAdmin() {
+      return isSignedIn() &&
+        (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+         userRoleDoc().data.role == 'admin');
+    }
+
+    function isStaff() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        userRoleDoc().data.role == 'staff';
+    }
+
+    // Reservas: solo administrador. El equipo de limpieza/mantenimiento
+    // no necesita ver datos de huéspedes ni de pago directamente — el
+    // checklist ya trae el nombre y la fecha de salida denormalizados.
     match /bookings/{bookingId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
 
+    // Checklists de limpieza: admin y staff pueden leer y actualizar
+    // (marcar tareas, subir fotos). Crear y borrar queda solo para
+    // admin, porque se crean/borran en cascada desde el detalle de
+    // una reserva.
     match /cleaning_checklists/{checklistId} {
-      allow read, write: if request.auth != null;
+      allow read, update: if isAdmin() || isStaff();
+      allow create, delete: if isAdmin();
     }
 
-    // A medida que agregues colecciones nuevas (guests, maintenance,
-    // payments...), repite el mismo patrón aquí.
+    // Roles de usuario: cada quien puede leer SU PROPIO documento (para
+    // que la app sepa qué pantalla mostrarle), pero solo el admin puede
+    // crear o cambiar roles — así ningún staff puede auto-promoverse.
+    match /users/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow write: if isAdmin();
+    }
+
+    // A medida que agregues colecciones nuevas (maintenance_tickets,
+    // guests, payments...), repite este patrón: decide explícitamente
+    // qué puede ver/tocar cada rol.
   }
 }

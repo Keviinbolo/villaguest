@@ -4,25 +4,28 @@ import 'package:flutter/foundation.dart';
 import 'package:villaguest/features/bookings/data/models/booking_model.dart';
 import 'package:villaguest/features/calendar/data/repositories/availability_repository.dart';
 
+
 /// Estado de reservas para toda la app (calendario, dashboard, etc.).
 ///
-/// Se suscribe en tiempo real a AvailabilityRepository.streamBookings()
-/// y expone la lista de reservas + helpers de disponibilidad para que
-/// los widgets no tengan que hablar con Firestore directamente.
+/// A diferencia de la primera versión, YA NO se suscribe a Firestore en
+/// el constructor. Se suscribe/desuscribe explícitamente a través de
+/// [updateAuthorization], que llama el ChangeNotifierProxyProvider de
+/// main.dart cada vez que cambia el rol de la sesión. Así, una cuenta
+/// de staff (que no tiene permiso de lectura sobre `bookings` según las
+/// reglas de Firestore) nunca intenta siquiera abrir el stream, en vez
+/// de intentarlo y fallar con permission-denied.
 class BookingProvider extends ChangeNotifier {
   BookingProvider({AvailabilityRepository? repository})
-      : _repository = repository ?? AvailabilityRepository() {
-    _subscribe();
-  }
+      : _repository = repository ?? AvailabilityRepository();
 
   final AvailabilityRepository _repository;
   StreamSubscription<List<BookingModel>>? _subscription;
 
+  bool _hasAccess = false;
   List<BookingModel> _bookings = [];
   bool _isLoading = true;
   String? _errorMessage;
 
-  /// Estados que bloquean fechas en el calendario. 'cancelled' no cuenta.
   static const _activeStatuses = ['pending', 'confirmed', 'completed'];
 
   List<BookingModel> get bookings => List.unmodifiable(_bookings);
@@ -31,6 +34,30 @@ class BookingProvider extends ChangeNotifier {
 
   List<BookingModel> get activeBookings =>
       _bookings.where((b) => _activeStatuses.contains(b.status)).toList();
+
+  /// Llamado por el ChangeNotifierProxyProvider cada vez que cambia el
+  /// rol de la sesión actual (login, logout, o resolución del rol tras
+  /// el login). Si [hasAccess] es true y todavía no estábamos
+  /// suscritos, se suscribe. Si es false, se desuscribe y limpia el
+  /// estado (por si había datos de una sesión de admin anterior en el
+  /// mismo navegador).
+  void updateAuthorization(bool hasAccess) {
+    if (hasAccess == _hasAccess) return;
+    _hasAccess = hasAccess;
+
+    if (hasAccess) {
+      _isLoading = true;
+      _errorMessage = null;
+      _subscribe();
+    } else {
+      _subscription?.cancel();
+      _subscription = null;
+      _bookings = [];
+      _isLoading = false;
+      _errorMessage = null;
+      notifyListeners();
+    }
+  }
 
   void _subscribe() {
     _subscription = _repository.streamBookings().listen(
@@ -48,9 +75,6 @@ class BookingProvider extends ChangeNotifier {
     );
   }
 
-  /// true si [day] cae dentro de alguna reserva activa. Pensado para
-  /// pintar el calendario día a día sin pegarle a Firestore por cada
-  /// celda.
   bool isDayBooked(DateTime day) {
     final date = DateTime(day.year, day.month, day.day);
     return activeBookings.any((b) {
@@ -60,11 +84,6 @@ class BookingProvider extends ChangeNotifier {
     });
   }
 
-  /// Comprobación rápida en cliente usando los datos ya cargados en
-  /// memoria — pensada para dar feedback instantáneo en la UI (p.ej. al
-  /// seleccionar un rango en el calendario). NO sustituye la
-  /// revalidación real que hace AvailabilityRepository contra Firestore
-  /// al crear o editar una reserva.
   bool isRangeAvailableLocally({
     required DateTime checkIn,
     required DateTime checkOut,

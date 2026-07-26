@@ -28,11 +28,32 @@ class MainApp extends StatelessWidget {
       // crees: PaymentProvider, GuestProvider, MaintenanceProvider, etc.
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => BookingProvider()),
-        ChangeNotifierProvider(create: (_) => CleaningProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, BookingProvider>(
+          create: (_) => BookingProvider(),
+          update: (_, authProvider, bookingProvider) {
+            // Solo se suscribe a Firestore si hay sesión Y el rol es
+            // admin. Para staff (o mientras el rol todavía está
+            // resolviéndose), se queda sin suscribir — nunca intenta
+            // una lectura que las reglas de Firestore van a rechazar.
+            bookingProvider!.updateAuthorization(
+              authProvider.isLoggedIn && authProvider.isAdmin,
+            );
+            return bookingProvider;
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, CleaningProvider>(
+          create: (_) => CleaningProvider(),
+          update: (_, authProvider, cleaningProvider) {
+            // Admin y staff tienen permiso sobre cleaning_checklists,
+            // así que aquí basta con "¿hay sesión?".
+            cleaningProvider!.updateAuthorization(authProvider.isLoggedIn);
+            return cleaningProvider;
+          },
+        ),
       ],
       child: const MaterialApp(
         debugShowCheckedModeBanner: false,
+        title: 'VillaGuest RD',
         home: AuthGate(),
       ),
     );

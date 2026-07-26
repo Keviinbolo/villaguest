@@ -7,15 +7,22 @@ import 'package:villaguest/features/cleaning/data/cleaning_repository.dart';
 
 
 
+/// Igual que BookingProvider: NO se suscribe a Firestore en el
+/// constructor. Se suscribe/desuscribe a través de [updateAuthorization],
+/// llamado por el ChangeNotifierProxyProvider de main.dart cada vez que
+/// cambia el estado de sesión. Esto evita el bug de suscribirse antes
+/// de que termine el login (cuando request.auth todavía es null para
+/// las reglas de Firestore) y quedar con un error "pegado" para
+/// siempre, ya que un stream rechazado por permisos no se reintenta
+/// solo cuando después sí hay sesión válida.
 class CleaningProvider extends ChangeNotifier {
   CleaningProvider({CleaningRepository? repository})
-      : _repository = repository ?? CleaningRepository() {
-    _subscribe();
-  }
+      : _repository = repository ?? CleaningRepository();
 
   final CleaningRepository _repository;
   StreamSubscription<List<CleaningChecklistModel>>? _subscription;
 
+  bool _hasAccess = false;
   List<CleaningChecklistModel> _checklists = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -23,6 +30,28 @@ class CleaningProvider extends ChangeNotifier {
   List<CleaningChecklistModel> get checklists => List.unmodifiable(_checklists);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+
+  /// Llamado por el ChangeNotifierProxyProvider cada vez que cambia el
+  /// estado de sesión. Tanto admin como staff tienen permiso de lectura
+  /// sobre cleaning_checklists según las reglas de Firestore, así que
+  /// aquí basta con "¿hay sesión?", sin distinguir rol.
+  void updateAuthorization(bool hasAccess) {
+    if (hasAccess == _hasAccess) return;
+    _hasAccess = hasAccess;
+
+    if (hasAccess) {
+      _isLoading = true;
+      _errorMessage = null;
+      _subscribe();
+    } else {
+      _subscription?.cancel();
+      _subscription = null;
+      _checklists = [];
+      _isLoading = false;
+      _errorMessage = null;
+      notifyListeners();
+    }
+  }
 
   void _subscribe() {
     _subscription = _repository.streamChecklists().listen(
