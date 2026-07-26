@@ -227,8 +227,10 @@ class FirebaseService {
   /// asociada.
   Future<void> deleteFolder(String storagePath) async {
     final ref = _storage.ref(storagePath);
-    final result = await ref.listAll();
-    await Future.wait(result.items.map((item) => item.delete()));
+    final result = await ref.listAll().timeout(const Duration(seconds: 3));
+    await Future.wait(
+      result.items.map((item) => item.delete()),
+    ).timeout(const Duration(seconds: 3));
   }
 
   Future<String> getDownloadUrl(String storagePath) {
