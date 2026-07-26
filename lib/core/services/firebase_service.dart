@@ -138,7 +138,16 @@ class FirebaseService {
   }
 
   /// Stream de una colección con query opcional.
-  
+  ///
+  /// Ejemplo de uso desde availability_repository.dart:
+  /// ```dart
+  /// FirebaseService.instance.streamCollection(
+  ///   collectionPath: 'bookings',
+  ///   queryBuilder: (q) => q
+  ///       .where('checkOut', isGreaterThanOrEqualTo: fromDate)
+  ///       .orderBy('checkOut'),
+  /// );
+  /// ```
   Stream<QuerySnapshot<Map<String, dynamic>>> streamCollection({
     required String collectionPath,
     Query<Map<String, dynamic>> Function(
@@ -191,7 +200,8 @@ class FirebaseService {
   // STORAGE — fotos de checklist de limpieza, documentos, contratos, etc.
   // ---------------------------------------------------------------------
 
-  /// Sube bytes y devuelve la URL pública de descarga.
+  /// Sube bytes (útil en Flutter Web, donde no siempre hay File del
+  /// sistema de archivos) y devuelve la URL pública de descarga.
   Future<String> uploadBytes({
     required String storagePath,
     required Uint8List data,
@@ -207,6 +217,18 @@ class FirebaseService {
 
   Future<void> deleteFile(String storagePath) async {
     await _storage.ref(storagePath).delete();
+  }
+
+  /// Elimina todos los archivos dentro de una "carpeta" de Storage
+  /// (Storage no tiene carpetas reales; esto simula la jerarquía por
+  /// prefijo de ruta usando listAll). Pensado para limpiar archivos
+  /// huérfanos cuando se borra el documento padre — por ejemplo, todas
+  /// las fotos de un checklist de limpieza cuando se borra la reserva
+  /// asociada.
+  Future<void> deleteFolder(String storagePath) async {
+    final ref = _storage.ref(storagePath);
+    final result = await ref.listAll();
+    await Future.wait(result.items.map((item) => item.delete()));
   }
 
   Future<String> getDownloadUrl(String storagePath) {

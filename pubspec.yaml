@@ -32,7 +32,7 @@ dependencies:
 
   # Utilidades
   intl: ^0.20.3                  # Formateo de fechas y monedas
-  image_picker: ^1.0.5           # Para cámara/fotos (limpieza)
+  image_picker: ^1.1.2           # Para cámara/fotos (limpieza)
   qr_flutter: ^4.1.0             # Generador de códigos QR
   url_launcher: ^6.2.1           # Abrir enlaces, WhatsApp, etc.
   flutter_dotenv: ^6.0.1         # Variables de entorno (.env)

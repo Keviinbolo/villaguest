@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/bookings/presentation/screen/bookings_list_screen.dart';
+import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 import '../../../bookings/presentation/widgets/create_booking_dialog.dart';
 import '../../../calendar/presentation/widgets/booking_calendar.dart';
+
 
 /// Pantalla principal tras iniciar sesión. Temporal como Dashboard real
 /// (la reemplazaremos más adelante), pero ya funcional: calendario,
@@ -36,6 +38,15 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const BookingsListScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.cleaning_services_outlined),
+            tooltip: 'Checklists de limpieza',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CleaningListScreen()),
               );
             },
           ),

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
+import 'package:villaguest/features/cleaning/presentation/cleaning_checklist_screen.dart';
+import 'package:villaguest/features/cleaning/providers/cleaning_provider.dart';
+
 
 import '../../data/models/booking_model.dart';
 
@@ -50,18 +53,20 @@ class BookingDetailScreen extends StatelessWidget {
     BuildContext context,
     BookingProvider provider,
   ) async {
-    // Capturamos Navigator y ScaffoldMessenger antes de cualquier await,
-    // por la misma razón que en CreateBookingDialog: evita que el
-    // context quede obsoleto tras una operación async.
+    // Capturamos Navigator, ScaffoldMessenger y CleaningProvider antes
+    // de cualquier await, por la misma razón que en otros lados: evita
+    // que el context quede obsoleto tras una operación async.
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final cleaningProvider = context.read<CleaningProvider>();
 
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Eliminar reserva'),
         content: const Text(
-          'Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta reserva?',
+          'Esta acción no se puede deshacer. ¿Seguro que quieres eliminar esta reserva? '
+          'También se eliminará su checklist de limpieza, si tiene uno.',
         ),
         actions: [
           TextButton(
@@ -80,14 +85,50 @@ class BookingDetailScreen extends StatelessWidget {
     if (confirmed != true) return;
 
     try {
+      // El borrado del checklist es "mejor esfuerzo": si falla (rules
+      // no desplegadas, problema de red puntual, etc.), NO debe impedir
+      // que se borre la reserva, que es la acción que el usuario pidió
+      // explícitamente. En el peor caso queda un checklist huérfano,
+      // que es un problema menor y recuperable — bloquear el borrado
+      // de la reserva por esto sería peor.
+      try {
+        await cleaningProvider.deleteChecklistsForBooking(bookingId);
+      } catch (_) {
+        // Ignorado a propósito: ver comentario arriba.
+      }
+
       await provider.deleteBooking(bookingId);
+
       navigator.pop(); // vuelve a la lista de reservas
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Reserva eliminada.')),
+      messenger.showSnackBar(const SnackBar(content: Text('Reserva eliminada.')));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('No se pudo eliminar: $e')));
+    }
+  }
+
+  Future<void> _openCleaningChecklist(
+    BuildContext context,
+    BookingModel booking,
+  ) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final cleaningProvider = context.read<CleaningProvider>();
+
+    try {
+      final checklistId = await cleaningProvider.createChecklistForBooking(
+        bookingId: booking.id,
+        guestName: booking.guestName,
+        checkOutDate: booking.checkOut,
+      );
+
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => CleaningChecklistScreen(checklistId: checklistId),
+        ),
       );
     } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text('No se pudo eliminar: $e')),
+        SnackBar(content: Text('No se pudo abrir el checklist: $e')),
       );
     }
   }
@@ -96,15 +137,15 @@ class BookingDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = context.watch<BookingProvider>();
 
-    BookingModel? booking;
+    BookingModel? matchingBooking;
     for (final b in provider.bookings) {
       if (b.id == bookingId) {
-        booking = b;
+        matchingBooking = b;
         break;
       }
     }
 
-    if (booking == null) {
+    if (matchingBooking == null) {
       // Puede pasar si la eliminaste desde otro dispositivo/pestaña
       // mientras estabas viendo esta pantalla.
       return Scaffold(
@@ -112,6 +153,15 @@ class BookingDetailScreen extends StatelessWidget {
         body: const Center(child: Text('Esta reserva ya no existe.')),
       );
     }
+
+    // IMPORTANTE: guardamos la reserva en una variable `final`. La
+    // variable de arriba (`matchingBooking`) se reasigna dentro de un
+    // `for`, así que el analizador de Dart no la considera "efectivamente
+    // final" — y sin eso, la promoción de BookingModel? a BookingModel
+    // (que logramos con el chequeo `if (... == null) return`) NO
+    // sobrevive dentro de un closure, como los `onPressed: () => ...`
+    // de más abajo. Con esta copia final, sí sobrevive.
+    final booking = matchingBooking;
 
     final nights = booking.checkOut.difference(booking.checkIn).inDays;
     final balanceDue = booking.totalPrice - booking.depositPaid;
@@ -143,14 +193,8 @@ class BookingDetailScreen extends StatelessWidget {
           _infoRow('Teléfono', booking.guestPhone),
           const SizedBox(height: 20),
           _sectionTitle(context, 'Pago'),
-          _infoRow(
-            'Precio total',
-            '\$${booking.totalPrice.toStringAsFixed(2)}',
-          ),
-          _infoRow(
-            'Señal pagada',
-            '\$${booking.depositPaid.toStringAsFixed(2)}',
-          ),
+          _infoRow('Precio total', '\$${booking.totalPrice.toStringAsFixed(2)}'),
+          _infoRow('Señal pagada', '\$${booking.depositPaid.toStringAsFixed(2)}'),
           _infoRow('Saldo pendiente', '\$${balanceDue.toStringAsFixed(2)}'),
           const SizedBox(height: 20),
           _sectionTitle(context, 'Estado'),
@@ -166,6 +210,17 @@ class BookingDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _buildActions(context, provider, booking),
+          if (booking.status == 'confirmed' || booking.status == 'completed') ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.cleaning_services_outlined),
+                label: const Text('Checklist de limpieza'),
+                onPressed: () => _openCleaningChecklist(context, booking),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -210,40 +265,30 @@ class BookingDetailScreen extends StatelessWidget {
 
     switch (booking.status) {
       case 'pending':
-        buttons.add(
-          FilledButton(
-            onPressed: () => _updateStatus(context, provider, 'confirmed'),
-            child: const Text('Confirmar reserva'),
-          ),
-        );
-        buttons.add(
-          OutlinedButton(
-            onPressed: () => _updateStatus(context, provider, 'cancelled'),
-            child: const Text('Cancelar reserva'),
-          ),
-        );
+        buttons.add(FilledButton(
+          onPressed: () => _updateStatus(context, provider, 'confirmed'),
+          child: const Text('Confirmar reserva'),
+        ));
+        buttons.add(OutlinedButton(
+          onPressed: () => _updateStatus(context, provider, 'cancelled'),
+          child: const Text('Cancelar reserva'),
+        ));
         break;
       case 'confirmed':
-        buttons.add(
-          FilledButton(
-            onPressed: () => _updateStatus(context, provider, 'completed'),
-            child: const Text('Marcar como completada'),
-          ),
-        );
-        buttons.add(
-          OutlinedButton(
-            onPressed: () => _updateStatus(context, provider, 'cancelled'),
-            child: const Text('Cancelar reserva'),
-          ),
-        );
+        buttons.add(FilledButton(
+          onPressed: () => _updateStatus(context, provider, 'completed'),
+          child: const Text('Marcar como completada'),
+        ));
+        buttons.add(OutlinedButton(
+          onPressed: () => _updateStatus(context, provider, 'cancelled'),
+          child: const Text('Cancelar reserva'),
+        ));
         break;
       case 'cancelled':
-        buttons.add(
-          OutlinedButton(
-            onPressed: () => _updateStatus(context, provider, 'pending'),
-            child: const Text('Reactivar como pendiente'),
-          ),
-        );
+        buttons.add(OutlinedButton(
+          onPressed: () => _updateStatus(context, provider, 'pending'),
+          child: const Text('Reactivar como pendiente'),
+        ));
         break;
       case 'completed':
         break;
@@ -255,7 +300,10 @@ class BookingDetailScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final button in buttons)
-          Padding(padding: const EdgeInsets.only(bottom: 8), child: button),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: button,
+          ),
       ],
     );
   }
