@@ -51,6 +51,12 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Huéspedes: solo admin, mismo criterio que bookings (del cual
+    // depende esta feature).
+    match /guests/{guestId} {
+      allow read, write: if isAdmin();
+    }
+
     // Roles de usuario: cada quien puede leer SU PROPIO documento (para
     // que la app sepa qué pantalla mostrarle), pero solo el admin puede
     // crear o cambiar roles — así ningún staff puede auto-promoverse.

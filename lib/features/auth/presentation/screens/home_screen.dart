@@ -5,11 +5,11 @@ import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.d
 import 'package:villaguest/features/dashboard/presentation/screen/dashboard_screen.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
-
 import '../../../bookings/presentation/widgets/create_booking_dialog.dart';
 import '../../../calendar/presentation/widgets/booking_calendar.dart';
-
+import '../../../guests/presentation/screens/guest_list_screen.dart';
 import '../../../maintenance/presentation/screens/maintenance_list_screen.dart';
+
 
 /// Pantalla principal tras iniciar sesión como admin.
 class HomeScreen extends StatelessWidget {
@@ -47,6 +47,15 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const BookingsListScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Huéspedes',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const GuestListScreen()),
               );
             },
           ),

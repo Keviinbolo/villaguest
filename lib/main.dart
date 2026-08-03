@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 import 'package:villaguest/features/cleaning/providers/cleaning_provider.dart';
 import 'package:villaguest/features/maintenance/presentation/providers/maintenance_provider.dart';
+import 'package:villaguest/features/guests/presentation/providers/guest_provider.dart';
 
 import 'firebase_options.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
@@ -55,6 +56,17 @@ class MainApp extends StatelessWidget {
             // Admin y staff tienen permiso sobre maintenance_tickets.
             maintenanceProvider!.updateAuthorization(authProvider.isLoggedIn);
             return maintenanceProvider;
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, GuestProvider>(
+          create: (_) => GuestProvider(),
+          update: (_, authProvider, guestProvider) {
+            // Solo admin: guests depende de bookings, que también es
+            // admin-only.
+            guestProvider!.updateAuthorization(
+              authProvider.isLoggedIn && authProvider.isAdmin,
+            );
+            return guestProvider;
           },
         ),
       ],
