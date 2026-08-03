@@ -44,6 +44,13 @@ service cloud.firestore {
       allow create, delete: if isAdmin();
     }
 
+    // Averías/mantenimiento: admin y staff pueden leer, crear y
+    // actualizar (cambiar estado). Solo admin puede borrar.
+    match /maintenance_tickets/{ticketId} {
+      allow read, create, update: if isAdmin() || isStaff();
+      allow delete: if isAdmin();
+    }
+
     // Roles de usuario: cada quien puede leer SU PROPIO documento (para
     // que la app sepa qué pantalla mostrarle), pero solo el admin puede
     // crear o cambiar roles — así ningún staff puede auto-promoverse.

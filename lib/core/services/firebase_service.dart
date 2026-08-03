@@ -216,7 +216,7 @@ class FirebaseService {
   }
 
   Future<void> deleteFile(String storagePath) async {
-    await _storage.ref(storagePath).delete();
+    await _storage.ref(storagePath).delete().timeout(const Duration(seconds: 2));
   }
 
   /// Elimina todos los archivos dentro de una "carpeta" de Storage
@@ -227,10 +227,10 @@ class FirebaseService {
   /// asociada.
   Future<void> deleteFolder(String storagePath) async {
     final ref = _storage.ref(storagePath);
-    final result = await ref.listAll().timeout(const Duration(seconds: 3));
+    final result = await ref.listAll().timeout(const Duration(seconds: 2));
     await Future.wait(
       result.items.map((item) => item.delete()),
-    ).timeout(const Duration(seconds: 3));
+    ).timeout(const Duration(seconds: 2));
   }
 
   Future<String> getDownloadUrl(String storagePath) {

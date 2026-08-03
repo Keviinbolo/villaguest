@@ -4,14 +4,11 @@ import 'package:villaguest/features/bookings/presentation/screen/bookings_list_s
 import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
-
 import '../../../bookings/presentation/widgets/create_booking_dialog.dart';
 import '../../../calendar/presentation/widgets/booking_calendar.dart';
+import '../../../maintenance/presentation/screens/maintenance_list_screen.dart';
 
-
-/// Pantalla principal tras iniciar sesión. Temporal como Dashboard real
-/// (la reemplazaremos más adelante), pero ya funcional: calendario,
-/// creación de reservas, acceso a la lista y cerrar sesión.
+/// Pantalla principal tras iniciar sesión como admin.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -47,6 +44,15 @@ class HomeScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const CleaningListScreen()),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.build_outlined),
+            tooltip: 'Averías y mantenimiento',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const MaintenanceListScreen()),
               );
             },
           ),

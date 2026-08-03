@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 import 'package:villaguest/features/cleaning/providers/cleaning_provider.dart';
+import 'package:villaguest/features/maintenance/presentation/providers/maintenance_provider.dart';
 
 import 'firebase_options.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
@@ -24,17 +25,16 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      // Aquí vas a ir agregando el resto de providers a medida que los
-      // crees: PaymentProvider, GuestProvider, MaintenanceProvider, etc.
+      // IMPORTANTE: ningún provider que dependa de Firestore debe
+      // suscribirse en su propio constructor. Todos se conectan a
+      // AuthProvider vía ChangeNotifierProxyProvider y solo se
+      // suscriben cuando updateAuthorization(true) se los confirma.
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProxyProvider<AuthProvider, BookingProvider>(
           create: (_) => BookingProvider(),
           update: (_, authProvider, bookingProvider) {
-            // Solo se suscribe a Firestore si hay sesión Y el rol es
-            // admin. Para staff (o mientras el rol todavía está
-            // resolviéndose), se queda sin suscribir — nunca intenta
-            // una lectura que las reglas de Firestore van a rechazar.
+            // Solo admin tiene permiso sobre bookings.
             bookingProvider!.updateAuthorization(
               authProvider.isLoggedIn && authProvider.isAdmin,
             );
@@ -44,10 +44,17 @@ class MainApp extends StatelessWidget {
         ChangeNotifierProxyProvider<AuthProvider, CleaningProvider>(
           create: (_) => CleaningProvider(),
           update: (_, authProvider, cleaningProvider) {
-            // Admin y staff tienen permiso sobre cleaning_checklists,
-            // así que aquí basta con "¿hay sesión?".
+            // Admin y staff tienen permiso sobre cleaning_checklists.
             cleaningProvider!.updateAuthorization(authProvider.isLoggedIn);
             return cleaningProvider;
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthProvider, MaintenanceProvider>(
+          create: (_) => MaintenanceProvider(),
+          update: (_, authProvider, maintenanceProvider) {
+            // Admin y staff tienen permiso sobre maintenance_tickets.
+            maintenanceProvider!.updateAuthorization(authProvider.isLoggedIn);
+            return maintenanceProvider;
           },
         ),
       ],

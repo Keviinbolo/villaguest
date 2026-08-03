@@ -3,12 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
-
+import '../../../maintenance/presentation/screens/maintenance_list_screen.dart';
 
 /// Pantalla principal para cuentas de equipo (limpieza/mantenimiento).
-/// A propósito NO tiene acceso al calendario, creación de reservas, ni
-/// datos de pago — solo a las tareas operativas que le corresponden.
-/// Cuando construyamos "Registro de averías", su tarjeta va aquí.
+/// Acceso limitado a propósito: solo checklists y averías, nada de
+/// calendario, reservas, ni datos de pago.
 class StaffHomeScreen extends StatelessWidget {
   const StaffHomeScreen({super.key});
 
@@ -41,7 +40,19 @@ class StaffHomeScreen extends StatelessWidget {
               },
             ),
           ),
-          // Próximamente: tarjeta de "Registro de averías / mantenimiento".
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.build_outlined),
+              title: const Text('Averías y mantenimiento'),
+              subtitle: const Text('Reportar problemas y ver el estado'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const MaintenanceListScreen()),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
