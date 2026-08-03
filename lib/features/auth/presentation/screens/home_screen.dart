@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/bookings/presentation/screen/bookings_list_screen.dart';
 import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.dart';
+import 'package:villaguest/features/dashboard/presentation/screen/dashboard_screen.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
+
 import '../../../bookings/presentation/widgets/create_booking_dialog.dart';
 import '../../../calendar/presentation/widgets/booking_calendar.dart';
+
 import '../../../maintenance/presentation/screens/maintenance_list_screen.dart';
 
 /// Pantalla principal tras iniciar sesión como admin.
@@ -29,6 +32,15 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('VillaGest RD'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart_outlined),
+            tooltip: 'Dashboard',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DashboardScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.list_alt),
             tooltip: 'Ver reservas',
