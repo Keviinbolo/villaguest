@@ -176,6 +176,7 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final booking = bookings[index];
+        final balanceDue = booking.totalPrice - booking.depositPaid;
         return ListTile(
           leading: CircleAvatar(
             backgroundColor:
@@ -186,8 +187,20 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
             ),
           ),
           title: Text(booking.guestName),
-          subtitle: Text(
-            '${formatDate(booking.checkIn)} → ${formatDate(booking.checkOut)}',
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${formatDate(booking.checkIn)} → ${formatDate(booking.checkOut)}'),
+              if (balanceDue > 0 && booking.status != 'cancelled')
+                Text(
+                  'Pendiente: RD\$ ${balanceDue.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.orange.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
           ),
           trailing: Chip(
             label: Text(

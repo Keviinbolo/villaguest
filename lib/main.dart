@@ -70,10 +70,16 @@ class MainApp extends StatelessWidget {
           },
         ),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'VillaGuestRD',
-        home: AuthGate(),
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF558B2F),
+          ),
+          useMaterial3: true,
+        ),
+        home: const AuthGate(),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 import 'package:villaguest/features/bookings/presentation/screen/bookings_list_screen.dart';
 import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.dart';
 import 'package:villaguest/features/dashboard/presentation/screen/dashboard_screen.dart';
@@ -61,7 +62,14 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('VillaGuestRD')),
-      drawer: _buildDrawer(context),
+      drawer: _buildDrawer(
+        context,
+        pendingCount: context
+            .watch<BookingProvider>()
+            .bookings
+            .where((b) => b.status == 'pending')
+            .length,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: BookingCalendar(
@@ -72,7 +80,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawer(BuildContext context) {
+  Widget _buildDrawer(BuildContext context, {required int pendingCount}) {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -109,7 +117,11 @@ class HomeScreen extends StatelessWidget {
             onTap: () => _navigate(context, const DashboardScreen()),
           ),
           ListTile(
-            leading: const Icon(Icons.list_alt_outlined),
+            leading: Badge(
+              label: Text('$pendingCount'),
+              isLabelVisible: pendingCount > 0,
+              child: const Icon(Icons.list_alt_outlined),
+            ),
             title: const Text('Reservas'),
             onTap: () => _navigate(context, const BookingsListScreen()),
           ),
