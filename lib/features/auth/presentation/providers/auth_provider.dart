@@ -60,18 +60,18 @@ class AuthProvider extends ChangeNotifier {
         .streamDocument(collectionPath: 'users', docId: uid)
         .listen(
       (doc) {
-        // Si no existe un documento de rol para este usuario (por
-        // ejemplo, tu cuenta de administrador original, creada antes
-        // de este feature), asumimos 'admin' por compatibilidad hacia
-        // atrás. Los roles nuevos SIEMPRE deben crear su documento
-        // explícito en /users — así staff nunca queda como admin por
-        // accidente, solo el caso contrario (admin sin doc todavía).
-        _role = doc.exists ? (doc.data()?['role'] as String? ?? 'admin') : 'admin';
+        // Si el documento no existe o no tiene campo 'role', el usuario
+        // no tiene acceso a ninguna función privilegiada. El admin debe
+        // crear el documento /users/{uid} con role:'admin' o role:'staff'
+        // explícitamente desde la consola de Firebase.
+        _role = doc.exists ? (doc.data()?['role'] as String?) : null;
         _isInitializing = false;
         notifyListeners();
       },
       onError: (_) {
-        _role = 'admin';
+        // Error de red o de permisos: no asumimos ningún rol.
+        // El usuario verá la pantalla de login o una pantalla de error.
+        _role = null;
         _isInitializing = false;
         notifyListeners();
       },

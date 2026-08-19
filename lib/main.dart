@@ -72,7 +72,7 @@ class MainApp extends StatelessWidget {
       ],
       child: const MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'VillaGuest RD',
+        title: 'VillaGuestRD',
         home: AuthGate(),
       ),
     );

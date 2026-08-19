@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:villaguest/core/utils/date_utils.dart';
 
 class BookingModel {
   final String id;
@@ -25,29 +25,18 @@ class BookingModel {
     required this.createdAt,
   });
 
-  /// Convierte un valor de fecha que puede venir como String ISO
-  /// (nuestro formato normal) o como Timestamp de Firestore (por si algún
-  /// día un Cloud Function o FieldValue.serverTimestamp() escribe el
-  /// campo directamente). Evita que la app crashee por un tipo inesperado.
-  static DateTime _parseDate(dynamic value) {
-    if (value is Timestamp) return value.toDate();
-    if (value is DateTime) return value;
-    if (value is String) return DateTime.parse(value);
-    throw FormatException('Formato de fecha no reconocido: $value');
-  }
-
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
       id: json['id'] as String,
       guestName: json['guestName'] as String,
       guestEmail: json['guestEmail'] as String,
       guestPhone: json['guestPhone'] as String,
-      checkIn: _parseDate(json['checkIn']),
-      checkOut: _parseDate(json['checkOut']),
+      checkIn: parseFlexibleDate(json['checkIn']),
+      checkOut: parseFlexibleDate(json['checkOut']),
       totalPrice: (json['totalPrice'] as num).toDouble(),
       depositPaid: (json['depositPaid'] as num).toDouble(),
       status: json['status'] as String,
-      createdAt: _parseDate(json['createdAt']),
+      createdAt: parseFlexibleDate(json['createdAt']),
     );
   }
 

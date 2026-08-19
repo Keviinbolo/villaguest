@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 
 import 'booking_detail_screen.dart';
@@ -40,12 +41,6 @@ class BookingsListScreen extends StatelessWidget {
     }
   }
 
-  static String formatDate(DateTime date) {
-    final d = date.day.toString().padLeft(2, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    return '$d/$m/${date.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<BookingProvider>();
@@ -77,7 +72,7 @@ class BookingsListScreen extends StatelessWidget {
 
     return ListView.separated(
       itemCount: bookings.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final booking = bookings[index];
         return ListTile(

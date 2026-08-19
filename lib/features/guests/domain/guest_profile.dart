@@ -31,8 +31,9 @@ class GuestProfile {
   double get totalSpent =>
       activeBookings.fold(0.0, (sum, b) => sum + b.totalPrice);
 
-  DateTime get lastCheckIn =>
-      bookings.map((b) => b.checkIn).reduce((a, b) => a.isAfter(b) ? a : b);
+  DateTime? get lastCheckIn => bookings.isEmpty
+      ? null
+      : bookings.map((b) => b.checkIn).reduce((a, b) => a.isAfter(b) ? a : b);
 
   /// Agrupa una lista de reservas por email normalizado (minúsculas,
   /// sin espacios) y arma un GuestProfile por cada huésped único.

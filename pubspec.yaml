@@ -16,33 +16,22 @@ dependencies:
   cloud_firestore: ^5.5.0
   firebase_storage: ^12.3.7
   
-  # Estado y manejo de datos
-  provider: ^6.1.2               # Gestión de estado simple (o riverpod si prefieres)
-  equatable: ^2.0.5              # Facilita comparaciones
-  json_annotation: ^4.8.1        # Para serialización de modelos
-
-  # Calendario
-  timetide: ^1.2.1            # El más completo
-
-  # Pagos (Stripe)
-  flutter_stripe: ^13.1.0        # SDK nativo de Stripe para Flutter
-
-  # Comunicación (WhatsApp API)
-  whatsapp_cloud_flutter: ^1.0.0 # No oficial pero útil
+  # Estado
+  provider: ^6.1.2
 
   # Utilidades
   intl: ^0.20.3                  # Formateo de fechas y monedas
   image_picker: ^1.1.2           # Para cámara/fotos (limpieza)
-  qr_flutter: ^4.1.0             # Generador de códigos QR
-  url_launcher: ^6.2.1           # Abrir enlaces, WhatsApp, etc.
-  flutter_dotenv: ^6.0.1         # Variables de entorno (.env)
+  url_launcher: ^6.2.1           # Abrir enlaces externos
+
+  # Generación y descarga de PDFs (facturas)
+  pdf: ^3.11.1
+  printing: ^5.13.2
   
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  build_runner: ^2.4.7           # Para generar código (json_serializable)
-  json_serializable: ^6.7.1
   flutter_lints: ^6.0.0
 
 

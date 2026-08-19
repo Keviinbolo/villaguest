@@ -38,7 +38,14 @@ class GuestListScreen extends StatelessWidget {
 
     final profiles =
         GuestProfile.fromBookings(bookingProvider.bookings, guestProvider.notes)
-          ..sort((a, b) => b.lastCheckIn.compareTo(a.lastCheckIn));
+          ..sort((a, b) {
+            final aDate = a.lastCheckIn;
+            final bDate = b.lastCheckIn;
+            if (bDate == null && aDate == null) return 0;
+            if (bDate == null) return -1;
+            if (aDate == null) return 1;
+            return bDate.compareTo(aDate);
+          });
 
     if (profiles.isEmpty) {
       return const Center(
@@ -54,7 +61,7 @@ class GuestListScreen extends StatelessWidget {
 
     return ListView.separated(
       itemCount: profiles.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final profile = profiles[index];
         return ListTile(

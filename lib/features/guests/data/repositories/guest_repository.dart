@@ -26,6 +26,7 @@ class GuestRepository {
     required String notes,
     required bool isVip,
   }) {
+    // FirebaseService.setDocument ya añade 'updatedAt' con serverTimestamp().
     return _firebase.setDocument(
       collectionPath: _collectionPath,
       docId: _normalizeEmail(email),
@@ -33,7 +34,6 @@ class GuestRepository {
       data: {
         'notes': notes,
         'isVip': isVip,
-        'updatedAt': DateTime.now().toIso8601String(),
       },
     );
   }

@@ -9,25 +9,56 @@ import 'login_screen.dart';
 
 /// Decide qué mostrar según sesión y rol:
 /// - Sin sesión → LoginScreen
-/// - Sesión + rol 'staff' → StaffHomeScreen (acceso limitado: limpieza,
-///   y más adelante mantenimiento)
-/// - Sesión + rol 'admin' (o sin rol asignado aún, por compatibilidad)
-///   → HomeScreen (acceso completo)
+/// - Sesión + rol 'admin' → HomeScreen (acceso completo)
+/// - Sesión + rol 'staff' → StaffHomeScreen (limpieza y mantenimiento)
+/// - Sesión + sin rol en Firestore → pantalla de acceso denegado
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
+    final auth = context.watch<AuthProvider>();
 
-    if (authProvider.isInitializing) {
+    if (auth.isInitializing) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (!authProvider.isLoggedIn) {
-      return const LoginScreen();
-    }
+    if (!auth.isLoggedIn) return const LoginScreen();
 
-    return authProvider.isStaff ? const StaffHomeScreen() : const HomeScreen();
+    if (auth.isAdmin) return const HomeScreen();
+    if (auth.isStaff) return const StaffHomeScreen();
+
+    // Usuario autenticado en Firebase pero sin documento /users/{uid}
+    // o con un rol desconocido. Mostramos error y opción de cerrar sesión.
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline, size: 48, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'Sin acceso',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'La cuenta ${auth.user?.email ?? ''} no tiene un rol asignado.\n'
+                'Contacta al administrador.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.black54),
+              ),
+              const SizedBox(height: 24),
+              OutlinedButton(
+                onPressed: () => context.read<AuthProvider>().signOut(),
+                child: const Text('Cerrar sesión'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

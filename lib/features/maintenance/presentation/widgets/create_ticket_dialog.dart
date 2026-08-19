@@ -126,7 +126,7 @@ class _CreateTicketDialogState extends State<CreateTicketDialog> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _priority,
+                initialValue: _priority,
                 decoration: const InputDecoration(labelText: 'Prioridad'),
                 items: const [
                   DropdownMenuItem(value: 'low', child: Text('Baja')),

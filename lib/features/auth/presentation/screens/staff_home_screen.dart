@@ -11,16 +11,40 @@ import '../../../maintenance/presentation/screens/maintenance_list_screen.dart';
 class StaffHomeScreen extends StatelessWidget {
   const StaffHomeScreen({super.key});
 
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cerrar sesión'),
+        content: const Text('¿Seguro que quieres cerrar sesión?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Cerrar sesión'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      context.read<AuthProvider>().signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('VillaGest RD — Equipo'),
+        title: const Text('VillaGuestRD — Equipo'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar sesión',
-            onPressed: () => context.read<AuthProvider>().signOut(),
+            onPressed: () => _confirmSignOut(context),
           ),
         ],
       ),

@@ -38,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final error = await authProvider.signIn(
       email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
+      password: _passwordController.text, // sin trim: los espacios son parte de la contraseña
     );
 
     if (!mounted) return;
@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Icon(Icons.villa_outlined, size: 48),
                   const SizedBox(height: 8),
                   Text(
-                    'VillaGest RD',
+                    'VillaGuestRD',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 4),

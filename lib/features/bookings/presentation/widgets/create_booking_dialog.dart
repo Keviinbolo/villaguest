@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 
 import '../../data/models/booking_model.dart';
@@ -45,12 +46,6 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
     _totalPriceController.dispose();
     _depositController.dispose();
     super.dispose();
-  }
-
-  String _formatDate(DateTime date) {
-    final d = date.day.toString().padLeft(2, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    return '$d/$m/${date.year}';
   }
 
   String? _validatePositiveNumber(String? value) {
@@ -127,7 +122,7 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${_formatDate(widget.checkIn)} → ${_formatDate(widget.checkOut)}'
+                '${formatDate(widget.checkIn)} → ${formatDate(widget.checkOut)}'
                 ' ($_nights ${_nights == 1 ? 'noche' : 'noches'})',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),

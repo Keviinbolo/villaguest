@@ -1,11 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-DateTime _parseDate(dynamic value) {
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.parse(value);
-  throw FormatException('Formato de fecha no reconocido: $value');
-}
+import 'package:villaguest/core/utils/date_utils.dart';
 
 /// Un reporte de avería o tarea de mantenimiento. No está ligado
 /// obligatoriamente a una reserva (a diferencia del checklist de
@@ -49,9 +42,9 @@ class MaintenanceTicketModel {
       priority: json['priority'] as String? ?? 'medium',
       status: json['status'] as String? ?? 'open',
       reportedBy: json['reportedBy'] as String? ?? '',
-      createdAt: _parseDate(json['createdAt']),
+      createdAt: parseFlexibleDate(json['createdAt']),
       photoUrl: json['photoUrl'] as String?,
-      resolvedAt: json['resolvedAt'] != null ? _parseDate(json['resolvedAt']) : null,
+      resolvedAt: json['resolvedAt'] != null ? parseFlexibleDate(json['resolvedAt']) : null,
     );
   }
 

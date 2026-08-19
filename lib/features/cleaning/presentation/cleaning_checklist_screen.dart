@@ -124,7 +124,7 @@ class _CleaningChecklistScreenState extends State<CleaningChecklistScreen> {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: tasks.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) =>
                   _buildTaskTile(provider, tasks[index]),
             ),

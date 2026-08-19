@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 import 'package:villaguest/features/bookings/presentation/screen/booking_detail_screen.dart';
 import 'package:villaguest/features/bookings/presentation/screen/bookings_list_screen.dart';
@@ -33,12 +34,6 @@ class _GuestDetailScreenState extends State<GuestDetailScreen> {
   void dispose() {
     _notesController.dispose();
     super.dispose();
-  }
-
-  String _formatDate(DateTime date) {
-    final d = date.day.toString().padLeft(2, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    return '$d/$m/${date.year}';
   }
 
   Future<void> _save(GuestProvider guestProvider, String realEmail) async {
@@ -146,7 +141,7 @@ class _GuestDetailScreenState extends State<GuestDetailScreen> {
             (booking) => Card(
               child: ListTile(
                 title: Text(
-                  '${_formatDate(booking.checkIn)} → ${_formatDate(booking.checkOut)}',
+                  '${formatDate(booking.checkIn)} → ${formatDate(booking.checkOut)}',
                 ),
                 subtitle: Text(
                   'Estado: ${BookingsListScreen.statusLabel(booking.status)}',

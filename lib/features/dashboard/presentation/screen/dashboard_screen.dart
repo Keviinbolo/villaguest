@@ -148,37 +148,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildStatsGrid(_DashboardStats stats) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      crossAxisSpacing: 12,
-      childAspectRatio: 1.7,
+    return Column(
       children: [
-        _statCard(
-          'Ocupación',
-          '${(stats.occupancyRate * 100).toStringAsFixed(0)}%',
-          Icons.hotel_outlined,
-          Colors.blue,
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 1.7,
+          children: [
+            _statCard(
+              'Ocupación',
+              '${(stats.occupancyRate * 100).toStringAsFixed(0)}%',
+              Icons.hotel_outlined,
+              Colors.blue,
+            ),
+            _statCard(
+              'Noches ocupadas',
+              '${stats.occupiedNights}/${stats.totalNightsInPeriod}',
+              Icons.nights_stay_outlined,
+              Colors.indigo,
+            ),
+            _statCard(
+              'Ingresos',
+              'RD\$ ${stats.totalRevenue.toStringAsFixed(0)}',
+              Icons.attach_money,
+              Colors.green,
+            ),
+            _statCard(
+              'Pendiente por cobrar',
+              'RD\$ ${stats.pendingBalance.toStringAsFixed(0)}',
+              Icons.hourglass_bottom_outlined,
+              Colors.orange,
+            ),
+          ],
         ),
-        _statCard(
-          'Noches ocupadas',
-          '${stats.occupiedNights}/${stats.totalNightsInPeriod}',
-          Icons.nights_stay_outlined,
-          Colors.indigo,
-        ),
-        _statCard(
-          'Ingresos',
-          '\$${stats.totalRevenue.toStringAsFixed(0)}',
-          Icons.attach_money,
-          Colors.green,
-        ),
-        _statCard(
-          'Pendiente por cobrar',
-          '\$${stats.pendingBalance.toStringAsFixed(0)}',
-          Icons.hourglass_bottom_outlined,
-          Colors.orange,
+        const SizedBox(height: 12),
+        _statCardWide(
+          'Reservas en el período',
+          '${stats.bookingsCount}',
+          Icons.event_note_outlined,
+          Colors.purple,
         ),
       ],
     );
@@ -196,6 +207,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 8),
             Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statCardWide(String label, String value, IconData icon, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
           ],
         ),
       ),

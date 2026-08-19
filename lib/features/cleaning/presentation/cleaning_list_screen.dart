@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/utils/date_utils.dart';
 
 import '../providers/cleaning_provider.dart';
 import 'cleaning_checklist_screen.dart';
@@ -31,12 +32,6 @@ class CleaningListScreen extends StatelessWidget {
       default:
         return status;
     }
-  }
-
-  static String _formatDate(DateTime date) {
-    final d = date.day.toString().padLeft(2, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    return '$d/$m/${date.year}';
   }
 
   @override
@@ -72,7 +67,7 @@ class CleaningListScreen extends StatelessWidget {
 
     return ListView.separated(
       itemCount: provider.checklists.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final checklist = provider.checklists[index];
         return ListTile(
@@ -82,7 +77,7 @@ class CleaningListScreen extends StatelessWidget {
           ),
           title: Text(checklist.guestName),
           subtitle: Text(
-            'Salida: ${_formatDate(checklist.checkOutDate)} · '
+            'Salida: ${formatDate(checklist.checkOutDate)} · '
             '${checklist.completedTasksCount}/${checklist.totalTasks} tareas',
           ),
           trailing: Chip(

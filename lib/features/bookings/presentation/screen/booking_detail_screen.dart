@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/services/invoice_service.dart';
+import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
+import 'package:villaguest/features/bookings/presentation/screen/invoice_preview_screen.dart';
+import 'package:villaguest/features/bookings/presentation/widgets/edit_booking_dialog.dart';
 import 'package:villaguest/features/cleaning/presentation/cleaning_checklist_screen.dart';
 import 'package:villaguest/features/cleaning/providers/cleaning_provider.dart';
 
@@ -20,12 +24,6 @@ class BookingDetailScreen extends StatelessWidget {
   const BookingDetailScreen({super.key, required this.bookingId});
 
   final String bookingId;
-
-  String _formatDate(DateTime date) {
-    final d = date.day.toString().padLeft(2, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    return '$d/$m/${date.year}';
-  }
 
   Future<void> _updateStatus(
     BuildContext context,
@@ -106,6 +104,32 @@ class BookingDetailScreen extends StatelessWidget {
     }
   }
 
+  void _openConfirmationPreview(BuildContext context, BookingModel booking) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => InvoicePreviewScreen(
+          title: 'Confirmación de Reserva',
+          filename: 'confirmacion_${booking.id.substring(0, booking.id.length.clamp(0, 12))}.pdf',
+          buildBytes: (format) =>
+              InvoiceService.buildConfirmationBytes(format, booking),
+        ),
+      ),
+    );
+  }
+
+  void _openFinalInvoicePreview(BuildContext context, BookingModel booking) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => InvoicePreviewScreen(
+          title: 'Factura Final',
+          filename: 'factura_${booking.id.substring(0, booking.id.length.clamp(0, 12))}.pdf',
+          buildBytes: (format) =>
+              InvoiceService.buildFinalInvoiceBytes(format, booking),
+        ),
+      ),
+    );
+  }
+
   Future<void> _openCleaningChecklist(
     BuildContext context,
     BookingModel booking,
@@ -171,6 +195,14 @@ class BookingDetailScreen extends StatelessWidget {
         title: Text(booking.guestName),
         actions: [
           IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Editar reserva',
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => EditBookingDialog(booking: booking),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_outline),
             tooltip: 'Eliminar reserva',
             onPressed: () => _confirmDelete(context, provider),
@@ -183,7 +215,7 @@ class BookingDetailScreen extends StatelessWidget {
           _sectionTitle(context, 'Fechas'),
           _infoRow(
             'Check-in → Check-out',
-            '${_formatDate(booking.checkIn)} → ${_formatDate(booking.checkOut)}',
+            '${formatDate(booking.checkIn)} → ${formatDate(booking.checkOut)}',
           ),
           _infoRow('Noches', '$nights'),
           const SizedBox(height: 20),
@@ -220,6 +252,29 @@ class BookingDetailScreen extends StatelessWidget {
                 onPressed: () => _openCleaningChecklist(context, booking),
               ),
             ),
+          ],
+          if (booking.status != 'cancelled') ...[
+            const SizedBox(height: 20),
+            _sectionTitle(context, 'Documentos'),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('Ver Confirmación de Reserva'),
+                onPressed: () => _openConfirmationPreview(context, booking),
+              ),
+            ),
+            if (booking.status == 'completed') ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: const Text('Ver Factura Final'),
+                  onPressed: () => _openFinalInvoicePreview(context, booking),
+                ),
+              ),
+            ],
           ],
         ],
       ),

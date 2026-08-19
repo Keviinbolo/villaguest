@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/maintenance/presentation/providers/maintenance_provider.dart';
 import 'package:villaguest/features/maintenance/presentation/screens/maintenance_ticket_detail_screen.dart';
 import 'package:villaguest/features/maintenance/presentation/widgets/create_ticket_dialog.dart';
@@ -59,12 +60,6 @@ class MaintenanceListScreen extends StatelessWidget {
     }
   }
 
-  static String formatDate(DateTime date) {
-    final d = date.day.toString().padLeft(2, '0');
-    final m = date.month.toString().padLeft(2, '0');
-    return '$d/$m/${date.year}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<MaintenanceProvider>();
@@ -115,7 +110,7 @@ class MaintenanceListScreen extends StatelessWidget {
 
     return ListView.separated(
       itemCount: tickets.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final ticket = tickets[index];
         return ListTile(

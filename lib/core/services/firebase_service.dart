@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-/// Servicio central de Firebase para VillaGest RD.
+/// Servicio central de Firebase para VillaGuestRD.
 ///
 /// Envuelve Firestore, Auth y Storage para que ningún repositorio de
 /// features (bookings, payments, guests, maintenance...) hable
@@ -56,10 +56,13 @@ class FirebaseService {
 
   String _mapAuthError(FirebaseAuthException e) {
     switch (e.code) {
-      case 'user-not-found':
-        return 'No existe una cuenta con ese correo.';
+      // 'invalid-credential' cubre credenciales incorrectas (email o contraseña)
+      // en el SDK moderno de Firebase Auth. 'wrong-password' y 'user-not-found'
+      // ya no se emiten por separado para evitar enumerar usuarios existentes.
+      case 'invalid-credential':
       case 'wrong-password':
-        return 'Contraseña incorrecta.';
+      case 'user-not-found':
+        return 'Correo o contraseña incorrectos.';
       case 'invalid-email':
         return 'El correo no es válido.';
       case 'user-disabled':

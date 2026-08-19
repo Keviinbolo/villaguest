@@ -1,11 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-DateTime _parseDate(dynamic value) {
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.parse(value);
-  throw FormatException('Formato de fecha no reconocido: $value');
-}
+import 'package:villaguest/core/utils/date_utils.dart';
 
 /// Información adicional sobre un huésped que NO vive en las reservas:
 /// notas del anfitrión y marca VIP. El ID del documento es el email del
@@ -29,7 +22,7 @@ class GuestNoteModel {
       email: email,
       notes: json['notes'] as String? ?? '',
       isVip: json['isVip'] as bool? ?? false,
-      updatedAt: _parseDate(json['updatedAt']),
+      updatedAt: parseFlexibleDate(json['updatedAt']),
     );
   }
 

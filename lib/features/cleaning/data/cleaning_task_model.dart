@@ -1,13 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
-/// Convierte un valor de fecha que puede venir como String ISO o
-/// Timestamp de Firestore. Mismo patrón que en BookingModel.
-DateTime parseFlexibleDate(dynamic value) {
-  if (value is Timestamp) return value.toDate();
-  if (value is DateTime) return value;
-  if (value is String) return DateTime.parse(value);
-  throw FormatException('Formato de fecha no reconocido: $value');
-}
+import 'package:villaguest/core/utils/date_utils.dart';
 
 /// Una tarea individual dentro de un checklist de limpieza. La foto es
 /// obligatoria para marcarla como completada — no existe ningún método
