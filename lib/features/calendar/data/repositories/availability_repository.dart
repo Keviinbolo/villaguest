@@ -173,4 +173,16 @@ class AvailabilityRepository {
       docId: bookingId,
     );
   }
+
+  Future<void> registerPayment({
+    required String bookingId,
+    required double currentDeposit,
+    required double amount,
+  }) {
+    return _firebase.updateDocument(
+      collectionPath: _collectionPath,
+      docId: bookingId,
+      data: {'depositPaid': currentDeposit + amount},
+    );
+  }
 }

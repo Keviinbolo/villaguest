@@ -162,7 +162,7 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _totalPriceController,
-                      decoration: const InputDecoration(labelText: 'Precio total (USD)'),
+                      decoration: const InputDecoration(labelText: 'Precio total (RD\$)'),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       validator: _validatePositiveNumber,
                     ),
@@ -171,7 +171,7 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _depositController,
-                      decoration: const InputDecoration(labelText: 'Señal (USD)'),
+                      decoration: const InputDecoration(labelText: 'Señal (RD\$)'),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       validator: _validatePositiveNumber,
                     ),
