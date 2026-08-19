@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
@@ -88,7 +89,7 @@ class _BookingsListScreenState extends State<BookingsListScreen> {
     final provider = context.watch<BookingProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reservas')),
+      appBar: const GradientAppBar(title: 'Reservas'),
       body: Column(
         children: [
           _buildSearchBar(),

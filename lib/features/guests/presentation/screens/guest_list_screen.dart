@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 import 'package:villaguest/features/guests/domain/guest_profile.dart';
 
@@ -15,7 +16,7 @@ class GuestListScreen extends StatelessWidget {
     final guestProvider = context.watch<GuestProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Huéspedes')),
+      appBar: const GradientAppBar(title: 'Huéspedes'),
       body: _buildBody(context, bookingProvider, guestProvider),
     );
   }

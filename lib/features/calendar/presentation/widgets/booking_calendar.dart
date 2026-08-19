@@ -21,9 +21,10 @@ import 'package:villaguest/features/bookings/presentation/booking_provider.dart'
 /// multi-mes, etc.), esta clase se puede reemplazar sin tocar el
 /// provider ni el repositorio.
 class BookingCalendar extends StatefulWidget {
-  const BookingCalendar({super.key, this.onRangeSelected});
+  const BookingCalendar({super.key, this.onRangeSelected, this.onBookedDayTap});
 
   final void Function(DateTime checkIn, DateTime checkOut)? onRangeSelected;
+  final VoidCallback? onBookedDayTap;
 
   @override
   State<BookingCalendar> createState() => _BookingCalendarState();
@@ -272,8 +273,15 @@ class _BookingCalendarState extends State<BookingCalendar> {
       );
     }
 
+    VoidCallback? onTap;
+    if (isBooked && !isPast && widget.onBookedDayTap != null) {
+      onTap = widget.onBookedDayTap;
+    } else if (!isDisabled) {
+      onTap = () => _handleDayTap(day, bookingProvider);
+    }
+
     return GestureDetector(
-      onTap: isDisabled ? null : () => _handleDayTap(day, bookingProvider),
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(

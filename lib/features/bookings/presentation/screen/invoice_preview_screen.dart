@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
@@ -25,7 +26,7 @@ class InvoicePreviewScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: GradientAppBar(title: title),
       body: PdfPreview(
         build: buildBytes,
         initialPageFormat: PdfPageFormat.a4,
