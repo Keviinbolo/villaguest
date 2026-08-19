@@ -5,6 +5,7 @@ import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 import 'package:villaguest/features/bookings/presentation/screen/invoice_preview_screen.dart';
 import 'package:villaguest/features/bookings/presentation/widgets/edit_booking_dialog.dart';
+import 'package:villaguest/features/bookings/presentation/widgets/register_payment_dialog.dart';
 import 'package:villaguest/features/cleaning/presentation/cleaning_checklist_screen.dart';
 import 'package:villaguest/features/cleaning/providers/cleaning_provider.dart';
 
@@ -225,9 +226,23 @@ class BookingDetailScreen extends StatelessWidget {
           _infoRow('Teléfono', booking.guestPhone),
           const SizedBox(height: 20),
           _sectionTitle(context, 'Pago'),
-          _infoRow('Precio total', '\$${booking.totalPrice.toStringAsFixed(2)}'),
-          _infoRow('Señal pagada', '\$${booking.depositPaid.toStringAsFixed(2)}'),
-          _infoRow('Saldo pendiente', '\$${balanceDue.toStringAsFixed(2)}'),
+          _infoRow('Precio total', 'RD\$ ${booking.totalPrice.toStringAsFixed(2)}'),
+          _infoRow('Señal pagada', 'RD\$ ${booking.depositPaid.toStringAsFixed(2)}'),
+          _infoRow('Saldo pendiente', 'RD\$ ${balanceDue.toStringAsFixed(2)}'),
+          if (balanceDue > 0 && booking.status != 'cancelled') ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.payments_outlined),
+                label: const Text('Registrar pago'),
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (_) => RegisterPaymentDialog(booking: booking),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           _sectionTitle(context, 'Estado'),
           Align(

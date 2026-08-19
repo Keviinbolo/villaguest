@@ -108,11 +108,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final yearStats = _computeStats(activeBookings, yearStart, yearEnd);
     final monthlyRevenue = _computeMonthlyRevenue(activeBookings, _selectedYear);
 
+    final todayCheckIns = activeBookings.where((b) {
+      final ci = b.checkIn;
+      return ci.year == now.year && ci.month == now.month && ci.day == now.day;
+    }).toList();
+
+    final todayCheckOuts = activeBookings.where((b) {
+      final co = b.checkOut;
+      return co.year == now.year && co.month == now.month && co.day == now.day;
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(title: const Text('Dashboard')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (todayCheckIns.isNotEmpty || todayCheckOuts.isNotEmpty) ...[
+            _buildTodaySection(todayCheckIns, todayCheckOuts),
+            const SizedBox(height: 24),
+          ],
           Text('Este mes', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           _buildStatsGrid(monthStats),
@@ -143,6 +157,81 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _buildMonthlyBarChart(monthlyRevenue),
           const SizedBox(height: 16),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTodaySection(
+    List<BookingModel> checkIns,
+    List<BookingModel> checkOuts,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Hoy', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        if (checkIns.isNotEmpty) ...[
+          _todayCard(
+            label: 'Check-in hoy',
+            bookings: checkIns,
+            icon: Icons.login_outlined,
+            color: Colors.green,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (checkOuts.isNotEmpty)
+          _todayCard(
+            label: 'Check-out hoy',
+            bookings: checkOuts,
+            icon: Icons.logout_outlined,
+            color: Colors.orange,
+          ),
+      ],
+    );
+  }
+
+  Widget _todayCard({
+    required String label,
+    required List<BookingModel> bookings,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: color, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  '$label (${bookings.length})',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            for (final b in bookings)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(b.guestName),
+                    Text(
+                      'RD\$ ${b.totalPrice.toStringAsFixed(0)}',
+                      style: const TextStyle(color: Colors.black54, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

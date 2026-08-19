@@ -114,6 +114,18 @@ class BookingProvider extends ChangeNotifier {
     return _repository.deleteBooking(bookingId);
   }
 
+  Future<void> registerPayment({
+    required String bookingId,
+    required double currentDeposit,
+    required double amount,
+  }) {
+    return _repository.registerPayment(
+      bookingId: bookingId,
+      currentDeposit: currentDeposit,
+      amount: amount,
+    );
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();

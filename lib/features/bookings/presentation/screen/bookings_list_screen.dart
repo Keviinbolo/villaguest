@@ -3,12 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 
+import '../../data/models/booking_model.dart';
 import 'booking_detail_screen.dart';
 
-/// Lista de todas las reservas (pasadas, presentes y futuras), ordenadas
-/// por fecha de check-in. Cada fila muestra el estado con un color y
-/// lleva al detalle al tocarla.
-class BookingsListScreen extends StatelessWidget {
+/// Lista de reservas con búsqueda por nombre/email y filtro por estado.
+class BookingsListScreen extends StatefulWidget {
   const BookingsListScreen({super.key});
 
   static Color statusColor(String status) {
@@ -42,32 +41,134 @@ class BookingsListScreen extends StatelessWidget {
   }
 
   @override
+  State<BookingsListScreen> createState() => _BookingsListScreenState();
+}
+
+class _BookingsListScreenState extends State<BookingsListScreen> {
+  final _searchController = TextEditingController();
+  String _searchText = '';
+  // null = todas
+  String? _statusFilter;
+
+  static const _filterOptions = [
+    (label: 'Todas', value: null),
+    (label: 'Pendiente', value: 'pending'),
+    (label: 'Confirmada', value: 'confirmed'),
+    (label: 'Completada', value: 'completed'),
+    (label: 'Cancelada', value: 'cancelled'),
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<BookingModel> _applyFilters(List<BookingModel> all) {
+    var result = [...all]..sort((a, b) => b.checkIn.compareTo(a.checkIn));
+
+    if (_statusFilter != null) {
+      result = result.where((b) => b.status == _statusFilter).toList();
+    }
+
+    final query = _searchText.trim().toLowerCase();
+    if (query.isNotEmpty) {
+      result = result.where((b) {
+        return b.guestName.toLowerCase().contains(query) ||
+            b.guestEmail.toLowerCase().contains(query) ||
+            b.guestPhone.contains(query);
+      }).toList();
+    }
+
+    return result;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<BookingProvider>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Reservas')),
-      body: _buildBody(context, provider),
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          _buildFilterChips(),
+          const Divider(height: 1),
+          Expanded(child: _buildList(provider)),
+        ],
+      ),
     );
   }
 
-  Widget _buildBody(BuildContext context, BookingProvider provider) {
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Buscar por nombre, email o teléfono…',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchText.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchText = '');
+                  },
+                )
+              : null,
+          border: const OutlineInputBorder(),
+          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+          isDense: true,
+        ),
+        onChanged: (value) => setState(() => _searchText = value),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        children: _filterOptions.map((opt) {
+          final selected = _statusFilter == opt.value;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(opt.label),
+              selected: selected,
+              onSelected: (_) => setState(() => _statusFilter = opt.value),
+              selectedColor: opt.value == null
+                  ? Theme.of(context).colorScheme.primaryContainer
+                  : BookingsListScreen.statusColor(opt.value!).withValues(alpha: 0.25),
+              checkmarkColor: opt.value == null
+                  ? Theme.of(context).colorScheme.primary
+                  : BookingsListScreen.statusColor(opt.value!),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildList(BookingProvider provider) {
     if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
     if (provider.errorMessage != null) {
       return Center(child: Text(provider.errorMessage!));
     }
 
-    // Mostramos TODAS las reservas, incluidas canceladas, para que el
-    // anfitrión tenga el historial completo. El calendario, en cambio,
-    // solo bloquea fechas con las activas.
-    final bookings = [...provider.bookings]
-      ..sort((a, b) => a.checkIn.compareTo(b.checkIn));
+    final bookings = _applyFilters(provider.bookings);
+
+    if (provider.bookings.isEmpty) {
+      return const Center(child: Text('Todavía no hay reservas.'));
+    }
 
     if (bookings.isEmpty) {
-      return const Center(child: Text('Todavía no hay reservas.'));
+      return const Center(child: Text('No hay reservas que coincidan con el filtro.'));
     }
 
     return ListView.separated(
@@ -77,8 +178,12 @@ class BookingsListScreen extends StatelessWidget {
         final booking = bookings[index];
         return ListTile(
           leading: CircleAvatar(
-            backgroundColor: statusColor(booking.status).withValues(alpha: 0.15),
-            child: Icon(Icons.event, color: statusColor(booking.status)),
+            backgroundColor:
+                BookingsListScreen.statusColor(booking.status).withValues(alpha: 0.15),
+            child: Icon(
+              Icons.event,
+              color: BookingsListScreen.statusColor(booking.status),
+            ),
           ),
           title: Text(booking.guestName),
           subtitle: Text(
@@ -86,20 +191,18 @@ class BookingsListScreen extends StatelessWidget {
           ),
           trailing: Chip(
             label: Text(
-              statusLabel(booking.status),
+              BookingsListScreen.statusLabel(booking.status),
               style: const TextStyle(fontSize: 12, color: Colors.white),
             ),
-            backgroundColor: statusColor(booking.status),
+            backgroundColor: BookingsListScreen.statusColor(booking.status),
             padding: EdgeInsets.zero,
             visualDensity: VisualDensity.compact,
           ),
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => BookingDetailScreen(bookingId: booking.id),
-              ),
-            );
-          },
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => BookingDetailScreen(bookingId: booking.id),
+            ),
+          ),
         );
       },
     );
