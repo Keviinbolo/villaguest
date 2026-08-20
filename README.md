@@ -1,77 +1,145 @@
-# 🏡 VillaGest RD - Vacation Rental Management PWA
+# VillaGuestRD
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.16+-02569B?logo=flutter)](https://flutter.dev)
-[![Firebase](https://img.shields.io/badge/Firebase-10.0+-FFCA28?logo=firebase)](https://firebase.google.com)
-[![PWA](https://img.shields.io/badge/PWA-Instalable-5A0FC8?logo=pwa)](https://web.dev/progressive-web-apps/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Aplicación móvil para la gestión operativa de villas de alquiler vacacional en República Dominicana. Diseñada para propietarios que operan de forma directa, sin depender de OTAs.
 
-**VillaGest RD** es una aplicación web progresiva (PWA) diseñada específicamente para propietarios de villas en **República Dominicana** que desean gestionar su propiedad por fuera de plataformas OTA (Airbnb, Booking). Centraliza la operativa, automatiza la comunicación y optimiza el control financiero y logístico.
-
-## 🎯 Filosofía del Proyecto
-> *"No necesito un marketplace para que me encuentren; necesito un piloto automático que gestione mi negocio mientras yo disfruto del proceso."*
-
-Esta app nace para solucionar el caos del **alquiler directo**: múltiples llamadas de WhatsApp, dobles reservas en el calendario, pérdida de documentos y falta de control sobre el estado de la propiedad.
+[![Flutter](https://img.shields.io/badge/Flutter-3.12+-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Firebase](https://img.shields.io/badge/Firebase-Firestore%20%7C%20Auth%20%7C%20Storage-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
+[![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)](https://dart.dev)
 
 ---
 
-## ✨ Características Principales (MVP)
+## Características
 
-### 📆 Módulo de Reservas y Calendario
-- **Calendario interactivo** con vistas diarias/semanales/mensuales (usando `timetide`).
-- **Sincronización iCalendar** para evitar dobles reservas si se publica en otros portales.
-- **Motor de disponibilidad** en tiempo real conectado a Firebase Firestore.
-- **Generación automática de contratos** de alquiler con firma digital (integración con Signaturit o similar).
+### Reservas y Calendario
+- Calendario interactivo con días reservados resaltados
+- Crear, editar y eliminar reservas con validación de disponibilidad
+- Soporte para múltiples villas con datos completamente aislados
 
-### 💳 Pasarela de Pagos (Adaptada a RD)
-- Integración con **Stripe** para cobros en USD (señal + saldo restante).
-- Soporte para múltiples divisas (USD/DOP).
-- Gestión de **fianzas (depósitos)** con liberación automática post-checkout.
+### Pagos
+- Registro de señal y pagos parciales
+- La reserva se marca automáticamente como completada al cubrir el saldo total
+- Historial de depósitos por reserva
 
-### 📱 Comunicación Hiperlocal (WhatsApp API)
-- Integración con **WhatsApp Cloud API** (usando `whatsapp_cloud_flutter`).
-- **Disparadores automáticos** de mensajes:
-  - *Día -7:* Instrucciones de llegada y recomendaciones locales (restaurantes, excursiones).
-  - *Día -1:* Código de acceso a la cerradura inteligente.
-  - *Día +1:* Check-in virtual y oferta de servicios adicionales (chef privado, transporte).
-  - *Día de salida:* Recordatorio de horarios y checklist de devolución.
+### Huéspedes
+- Perfil por huésped con notas internas y marca VIP
+- Búsqueda y filtrado en la lista de reservas
 
-### 🧹 Logística y Mantenimiento (Módulo Team)
-- **Checklist de limpieza post-salida** con obligación de subir **fotos** (evita reclamaciones).
-- **Inventario de consumibles** (gel, café, bolsas) que se actualiza según la duración de la estancia.
-- **Registro de incidencias** para asignar tareas a mantenimiento externo.
+### Limpieza
+- Checklists de limpieza generados automáticamente al confirmar una reserva
+- Subida de fotos por tarea (Firebase Storage)
+- Vista de estado: pendiente, en progreso, completado
 
-### 📊 Finanzas y Dashboards
-- Panel de control con **% de ocupación mensual** y **ingresos proyectados**.
-- Histórico de cobros y envío de facturas digitales (PDF).
-- Alertas de vencimiento de pagos pendientes.
+### Mantenimiento
+- Tickets de averías con prioridad (baja / media / alta)
+- Adjuntar foto al reporte
+- Ciclo de vida: abierto → en progreso → resuelto
 
-### 👨‍💻 Experiencia del Huésped (Guest App)
-- **Carpeta Digital** accesible vía QR dentro de la villa: WiFi, tutoriales del aire acondicionado, horario de la piscina, números de emergencia.
-- Botón de "Solicitar asistencia" que deriva directamente al chat de la propiedad.
+### Documentos PDF
+- Confirmación de reserva descargable / compartible
+- Factura final (disponible al completar la reserva)
 
----
+### Dashboard
+- Resumen de ocupación e ingresos
+- Reservas activas, pendientes y completadas del período
 
-## 🛠️ Stack Tecnológico
-
-| Capa | Tecnología | Justificación |
-| :--- | :--- | :--- |
-| **Frontend** | Flutter (Web) | Multiplataforma; se compila a PWA instalable en el móvil del huésped sin pasar por App Store/Google Play. |
-| **Backend** | Firebase (Auth, Firestore, Cloud Functions) | Sin servidor; ideal para escalar desde 1 villa hasta 10+; tiempo real para disponibilidad. |
-| **Pagos** | Stripe API | Soporte nativo para USD, documentación robusta y fácil integración con Flutter. |
-| **Mensajería** | WhatsApp Cloud API | Canal principal en RD; permite notificaciones push sin coste de SMS. |
-| **Hosting** | Vercel / Netlify | Despliegue continuo desde GitHub; CDN global para rápido acceso en RD. |
+### Multi-Villa
+- Un usuario se asocia a una villa específica mediante el campo `villa` en Firestore
+- Cada villa tiene sus propios datos de reservas, limpieza, mantenimiento y huéspedes
+- Roles diferenciados: **admin** (acceso completo) y **staff** (limpieza y mantenimiento)
 
 ---
 
-## 🚀 Hoja de Ruta (Roadmap)
+## Stack
 
-- [x] Configuración inicial del proyecto Flutter + PWA manifest.
-- [x] Integración con Firebase Firestore.
-- [x] Módulo de Calendario y creación de reservas.
-- [ ] Pasarela de pago con Stripe (Checkout Session).
-- [ ] Conexión con WhatsApp Cloud API (webhooks).
-- [ ] Panel de administración (dashboard financiero).
-- [ ] Generador de QR para el huésped.
-- [ ] Módulo de limpieza con cámara (usando `image_picker`).
+| Capa | Tecnología |
+|------|-----------|
+| UI | Flutter (Material 3) |
+| Estado | Provider + ChangeNotifier |
+| Base de datos | Cloud Firestore |
+| Autenticación | Firebase Auth |
+| Archivos | Firebase Storage |
+| PDFs | `pdf` + `printing` |
 
 ---
+
+## Configuración
+
+### Requisitos
+
+- Flutter SDK `^3.12.2`
+- Cuenta de Firebase con proyecto configurado
+- Android Studio / Xcode para compilar en dispositivo
+
+### Instalación
+
+```bash
+git clone https://github.com/tu-usuario/villaguest.git
+cd villaguest
+flutter pub get
+```
+
+### Firebase
+
+1. Crea un proyecto en [Firebase Console](https://console.firebase.google.com)
+2. Activa **Authentication** (correo/contraseña), **Firestore** y **Storage**
+3. Descarga `google-services.json` (Android) y `GoogleService-Info.plist` (iOS) y colócalos en sus respectivas carpetas
+4. Genera `lib/firebase_options.dart` con la CLI:
+
+```bash
+flutterfire configure
+```
+
+5. Despliega las reglas de seguridad:
+
+```bash
+firebase deploy --only firestore:rules,storage
+```
+
+### Usuarios
+
+Los usuarios se crean manualmente desde Firebase Console → Authentication.  
+Luego crea su documento en `users/{uid}`:
+
+```json
+{
+  "role": "admin",
+  "villa": "nombre_villa"
+}
+```
+
+Roles disponibles: `admin` | `staff`
+
+---
+
+## Estructura del proyecto
+
+```
+lib/
+├── core/
+│   ├── services/          # FirebaseService, InvoiceService
+│   ├── theme/             # AppTheme, GradientAppBar
+│   └── utils/
+├── features/
+│   ├── auth/              # Login, AuthGate, HomeScreen, StaffHomeScreen
+│   ├── bookings/          # Calendario, reservas, pagos, PDFs
+│   ├── cleaning/          # Checklists de limpieza
+│   ├── dashboard/         # Panel de estadísticas
+│   ├── guests/            # Perfiles de huéspedes
+│   └── maintenance/       # Tickets de averías
+└── main.dart
+```
+
+---
+
+## Roadmap
+
+- [ ] Notificaciones push (check-in / check-out próximos)
+- [ ] Exportar resumen financiero a CSV
+- [ ] Vista de disponibilidad multi-villa para el administrador principal
+- [ ] App pública para huéspedes (carpeta digital con QR)
+
+---
+
+## Licencia
+
+MIT
