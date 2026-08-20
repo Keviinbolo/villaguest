@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/auth/presentation/screens/home_screen.dart';
+import 'package:villaguest/features/auth/presentation/screens/splash_screen.dart';
 import 'package:villaguest/features/auth/presentation/screens/staff_home_screen.dart';
-
 
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
@@ -20,7 +20,7 @@ class AuthGate extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
 
     if (auth.isInitializing) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const SplashScreen();
     }
 
     if (!auth.isLoggedIn) return const LoginScreen();
