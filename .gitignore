@@ -1,4 +1,67 @@
-# Miscellaneous
+# ── Flutter / Dart ────────────────────────────────────────────────────────────
+**/doc/api/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication / obfuscation
+app.*.symbols
+app.*.map.json
+
+# ── Android ───────────────────────────────────────────────────────────────────
+/android/app/debug
+/android/app/profile
+/android/app/release
+/android/local.properties
+/android/key.properties
+*.jks
+*.keystore
+
+# ── iOS ───────────────────────────────────────────────────────────────────────
+**/ios/Flutter/.last_build_id
+
+# ── Firebase ──────────────────────────────────────────────────────────────────
+# Credenciales de plataforma — NO subir al repositorio
+google-services.json
+GoogleService-Info.plist
+
+# Ficheros generados por firebase_options (contiene API keys del proyecto)
+# Descomenta si prefieres no exponer las claves públicas de Firebase:
+# lib/firebase_options.dart
+
+# Logs del emulador local
+firebase-debug.log
+firestore-debug.log
+storage-debug.log
+ui-debug.log
+.firebase/
+
+# ── Secretos y entorno ────────────────────────────────────────────────────────
+.env
+.env.*
+secrets/
+*.secret
+
+# ── IDEs ──────────────────────────────────────────────────────────────────────
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code (comenta si quieres versionar la configuración del equipo)
+.vscode/
+
+# ── Herramientas de IA / agentes ──────────────────────────────────────────────
+.agents/
+.claude/
+skills-lock.json
+
+# ── Misceláneos ───────────────────────────────────────────────────────────────
 *.class
 *.log
 *.pyc
@@ -11,36 +74,4 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-.agents
-.claude/
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
-
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
-.dart_tool/
-.flutter-plugins-dependencies
-.pub-cache/
-.pub/
-/build/
-/coverage/
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+devtools_options.yaml
