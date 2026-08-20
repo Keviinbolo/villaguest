@@ -3,16 +3,26 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Fotos del checklist de limpieza: solo el administrador autenticado
-    // puede subir o leer. Sin esto, Firebase Storage en modo producción
-    // bloquea TODO por defecto, así que uploadBytes() fallaría con un
-    // error de permisos aunque hayas iniciado sesión en la app.
+    // FIX Vuln 3: En vez de permitir a cualquier usuario autenticado,
+    // verificamos el rol leyendo el documento /users/{uid} de Firestore.
+    // Solo admin y staff pueden leer y escribir fotos.
+    function userRole() {
+      return firestore.get(
+        /databases/(default)/documents/users/$(request.auth.uid)
+      ).data.role;
+    }
+
+    function isAdminOrStaff() {
+      return request.auth != null &&
+        userRole() in ['admin', 'staff'];
+    }
+
     match /cleaning_photos/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdminOrStaff();
     }
 
     match /maintenance_photos/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdminOrStaff();
     }
   }
 }
