@@ -7,6 +7,7 @@ import 'package:villaguest/features/bookings/presentation/booking_provider.dart'
 import 'package:villaguest/features/cleaning/providers/cleaning_provider.dart';
 import 'package:villaguest/features/maintenance/presentation/providers/maintenance_provider.dart';
 import 'package:villaguest/features/guests/presentation/providers/guest_provider.dart';
+import 'package:villaguest/features/settings/presentation/providers/villa_settings_provider.dart';
 
 import 'firebase_options.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
@@ -95,6 +96,16 @@ class MainApp extends StatelessWidget {
             ),
             ChangeNotifierProxyProvider<AuthProvider, GuestProvider>(
               create: (_) => GuestProvider(),
+              update: (_, auth, provider) {
+                provider!.updateAuthorization(
+                  auth.isLoggedIn && auth.isAdmin && auth.hasVilla,
+                  auth.villaId,
+                );
+                return provider;
+              },
+            ),
+            ChangeNotifierProxyProvider<AuthProvider, VillaSettingsProvider>(
+              create: (_) => VillaSettingsProvider(),
               update: (_, auth, provider) {
                 provider!.updateAuthorization(
                   auth.isLoggedIn && auth.isAdmin && auth.hasVilla,

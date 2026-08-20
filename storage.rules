@@ -3,26 +3,36 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // FIX Vuln 3: En vez de permitir a cualquier usuario autenticado,
-    // verificamos el rol leyendo el documento /users/{uid} de Firestore.
-    // Solo admin y staff pueden leer y escribir fotos.
-    function userRole() {
+    function userDoc() {
       return firestore.get(
         /databases/(default)/documents/users/$(request.auth.uid)
-      ).data.role;
+      ).data;
     }
 
     function isAdminOrStaff() {
       return request.auth != null &&
-        userRole() in ['admin', 'staff'];
+        userDoc().role in ['admin', 'staff'];
     }
 
+    function isAdmin() {
+      return request.auth != null &&
+        userDoc().role == 'admin';
+    }
+
+    // Fotos de checklists de limpieza: admin y staff pueden subir y leer.
     match /cleaning_photos/{allPaths=**} {
       allow read, write: if isAdminOrStaff();
     }
 
+    // Fotos de tickets de mantenimiento: admin y staff pueden subir y leer.
     match /maintenance_photos/{allPaths=**} {
       allow read, write: if isAdminOrStaff();
+    }
+
+    // Logo de la villa: solo el admin puede subir; admin y staff pueden leer.
+    match /villa_logos/{allPaths=**} {
+      allow read:  if isAdminOrStaff();
+      allow write: if isAdmin();
     }
   }
 }

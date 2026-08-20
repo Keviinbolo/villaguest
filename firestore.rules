@@ -92,5 +92,13 @@ service cloud.firestore {
       allow read:  if isSignedIn() && request.auth.uid == uid;
       allow write: if isAdmin();
     }
+
+    // ─── Configuración de villa ───────────────────────────────────────────
+    // Admin y staff pueden leer los ajustes de su propia villa (logo,
+    // nombre, contacto). Solo admin puede escribir.
+    match /villas/{villaId} {
+      allow read:  if (isAdmin() || isStaff()) && villaId == myVilla();
+      allow write: if isAdmin() && villaId == myVilla();
+    }
   }
 }

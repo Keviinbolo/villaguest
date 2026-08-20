@@ -12,6 +12,7 @@ import '../../../bookings/presentation/widgets/create_booking_dialog.dart';
 import '../../../calendar/presentation/widgets/booking_calendar.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
 import '../../../maintenance/presentation/screens/maintenance_list_screen.dart';
+import '../../../settings/presentation/screens/settings_screen.dart';
 
 /// Pantalla principal tras iniciar sesión como admin.
 class HomeScreen extends StatelessWidget {
@@ -279,6 +280,11 @@ class HomeScreen extends StatelessWidget {
             onTap: () => _navigate(context, const MaintenanceListScreen()),
           ),
           const Divider(),
+          ListTile(
+            leading: const Icon(Icons.settings_outlined),
+            title: const Text('Ajustes'),
+            onTap: () => _navigate(context, const SettingsScreen()),
+          ),
           ListTile(
             leading: const Icon(Icons.logout, color: Colors.red),
             title: const Text(
