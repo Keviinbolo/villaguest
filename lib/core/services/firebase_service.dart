@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
+import '../config/supabase_config.dart';
 
 /// Servicio central de Firebase para VillaGuestRD.
 ///
@@ -17,7 +19,6 @@ class FirebaseService {
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   // ---------------------------------------------------------------------
   // AUTH — login de administrador (no hay registro público en esta app)
@@ -200,43 +201,67 @@ class FirebaseService {
   }
 
   // ---------------------------------------------------------------------
-  // STORAGE — fotos de checklist de limpieza, documentos, contratos, etc.
+  // STORAGE — proxied through Supabase Edge Function (storage-proxy)
+  // Firebase ID token is verified server-side before any write is allowed.
   // ---------------------------------------------------------------------
 
-  /// Sube bytes (útil en Flutter Web, donde no siempre hay File del
-  /// sistema de archivos) y devuelve la URL pública de descarga.
+  static final Uri _proxyUri =
+      Uri.parse('${SupabaseConfig.url}/functions/v1/storage-proxy');
+
+  Future<String> _firebaseIdToken() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('No authenticated Firebase user');
+    return await user.getIdToken() ?? (throw Exception('Could not retrieve Firebase ID token'));
+  }
+
+  Map<String, String> _baseHeaders(String idToken) => {
+        'Authorization': 'Bearer $idToken',
+        'apikey': SupabaseConfig.anonKey,
+      };
+
   Future<String> uploadBytes({
     required String storagePath,
     required Uint8List data,
     String? contentType,
   }) async {
-    final ref = _storage.ref(storagePath);
-    final metadata = contentType != null
-        ? SettableMetadata(contentType: contentType)
-        : null;
-    await ref.putData(data, metadata);
-    return ref.getDownloadURL();
+    final idToken = await _firebaseIdToken();
+    final response = await http.post(
+      _proxyUri,
+      headers: {
+        ..._baseHeaders(idToken),
+        'Content-Type': contentType ?? 'image/jpeg',
+        'x-storage-path': storagePath,
+      },
+      body: data,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Upload failed (${response.statusCode}): ${response.body}');
+    }
+    final json = jsonDecode(response.body) as Map<String, dynamic>;
+    return json['url'] as String;
   }
 
   Future<void> deleteFile(String storagePath) async {
-    await _storage.ref(storagePath).delete().timeout(const Duration(seconds: 2));
+    final idToken = await _firebaseIdToken();
+    await http.delete(
+      _proxyUri,
+      headers: {
+        ..._baseHeaders(idToken),
+        'x-storage-path': storagePath,
+      },
+    );
   }
 
-  /// Elimina todos los archivos dentro de una "carpeta" de Storage
-  /// (Storage no tiene carpetas reales; esto simula la jerarquía por
-  /// prefijo de ruta usando listAll). Pensado para limpiar archivos
-  /// huérfanos cuando se borra el documento padre — por ejemplo, todas
-  /// las fotos de un checklist de limpieza cuando se borra la reserva
-  /// asociada.
   Future<void> deleteFolder(String storagePath) async {
-    final ref = _storage.ref(storagePath);
-    final result = await ref.listAll().timeout(const Duration(seconds: 2));
-    await Future.wait(
-      result.items.map((item) => item.delete()),
-    ).timeout(const Duration(seconds: 2));
-  }
-
-  Future<String> getDownloadUrl(String storagePath) {
-    return _storage.ref(storagePath).getDownloadURL();
+    final idToken = await _firebaseIdToken();
+    await http.delete(
+      _proxyUri,
+      headers: {
+        ..._baseHeaders(idToken),
+        'x-storage-path': storagePath,
+        'x-is-folder': 'true',
+      },
+    );
   }
 }

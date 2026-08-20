@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/config/supabase_config.dart';
 import 'package:villaguest/core/theme/app_theme.dart';
 import 'package:villaguest/features/auth/presentation/screens/splash_screen.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
@@ -23,6 +25,10 @@ class MainApp extends StatelessWidget {
 
   static final Future<void> _init = Future.wait([
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    Supabase.initialize(
+      url: SupabaseConfig.url,
+      publishableKey: SupabaseConfig.anonKey,
+    ),
     Future.delayed(const Duration(seconds: 3)),
   ]);
 
