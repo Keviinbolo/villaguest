@@ -49,6 +49,40 @@ class BookingDetailScreen extends StatelessWidget {
     }
   }
 
+  /// Confirma la reserva y crea el checklist de limpieza en background.
+  /// El checklist se crea aquí para que esté disponible en CleaningListScreen
+  /// sin necesidad de entrar primero al detalle de la reserva.
+  Future<void> _confirmBooking(
+    BuildContext context,
+    BookingProvider provider,
+    BookingModel booking,
+  ) async {
+    // Capturar antes del primer await para evitar context obsoleto.
+    final cleaningProvider = context.read<CleaningProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await provider.updateStatus(bookingId: bookingId, newStatus: 'confirmed');
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Reserva confirmada.')),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('No se pudo confirmar: $e')),
+      );
+      return;
+    }
+
+    // Mejor esfuerzo: si falla no bloquea ni muestra error al usuario.
+    try {
+      await cleaningProvider.createChecklistForBooking(
+        bookingId: booking.id,
+        guestName: booking.guestName,
+        checkOutDate: booking.checkOut,
+      );
+    } catch (_) {}
+  }
+
   Future<void> _confirmDelete(
     BuildContext context,
     BookingProvider provider,
@@ -337,7 +371,7 @@ class BookingDetailScreen extends StatelessWidget {
     switch (booking.status) {
       case 'pending':
         buttons.add(FilledButton(
-          onPressed: () => _updateStatus(context, provider, 'confirmed'),
+          onPressed: () => _confirmBooking(context, provider, booking),
           child: const Text('Confirmar reserva'),
         ));
         buttons.add(OutlinedButton(
@@ -346,10 +380,6 @@ class BookingDetailScreen extends StatelessWidget {
         ));
         break;
       case 'confirmed':
-        buttons.add(FilledButton(
-          onPressed: () => _updateStatus(context, provider, 'completed'),
-          child: const Text('Marcar como completada'),
-        ));
         buttons.add(OutlinedButton(
           onPressed: () => _updateStatus(context, provider, 'cancelled'),
           child: const Text('Cancelar reserva'),

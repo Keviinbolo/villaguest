@@ -11,23 +11,28 @@ class MaintenanceRepository {
   MaintenanceTicketModel _fromDoc(String id, Map<String, dynamic> data) =>
       MaintenanceTicketModel.fromJson(id, data);
 
-  Stream<List<MaintenanceTicketModel>> streamTickets() {
+  /// Stream de tickets de [villaId], ordenados por createdAt en cliente.
+  Stream<List<MaintenanceTicketModel>> streamTickets(String villaId) {
     return _firebase
         .streamCollection(
           collectionPath: _collectionPath,
-          queryBuilder: (q) => q.orderBy('createdAt', descending: true),
+          queryBuilder: (q) => q.where('villaId', isEqualTo: villaId),
         )
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => _fromDoc(doc.id, doc.data())).toList());
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => _fromDoc(doc.id, doc.data()))
+              .toList();
+          list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return list;
+        });
   }
 
-  /// La foto es opcional a propósito (a diferencia del checklist de
-  /// limpieza) — no toda avería tiene algo fotografiable de inmediato.
   Future<String> createTicket({
     required String title,
     required String description,
     required String priority,
     required String reportedBy,
+    required String villaId,
     Uint8List? photoBytes,
   }) async {
     final docRef = _firebase.collection(_collectionPath).doc();
@@ -46,6 +51,7 @@ class MaintenanceRepository {
       docId: docRef.id,
       merge: false,
       data: {
+        'villaId': villaId,
         'title': title,
         'description': description,
         'priority': priority,
@@ -65,7 +71,6 @@ class MaintenanceRepository {
     required String newStatus,
   }) {
     final data = <String, dynamic>{'status': newStatus};
-    // 'resolvedAt' se llena al resolver y se limpia si se reabre.
     data['resolvedAt'] = newStatus == 'resolved'
         ? DateTime.now().toIso8601String()
         : null;
@@ -80,10 +85,7 @@ class MaintenanceRepository {
   Future<void> deleteTicket(String ticketId) async {
     try {
       await _firebase.deleteFile('maintenance_photos/$ticketId.jpg');
-    } catch (_) {
-      // Mejor esfuerzo, igual que en cleaning: si no había foto o falla
-      // el borrado en Storage, no bloqueamos el borrado del ticket.
-    }
+    } catch (_) {}
 
     await _firebase.deleteDocument(
       collectionPath: _collectionPath,

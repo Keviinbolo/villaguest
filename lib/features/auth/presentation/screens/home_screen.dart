@@ -191,7 +191,9 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildDrawer(BuildContext context, {required int pendingCount}) {
-    final email = context.read<AuthProvider>().user?.email ?? '';
+    final auth = context.read<AuthProvider>();
+    final email = auth.user?.email ?? '';
+    final villa = auth.villaId ?? '';
 
     return Drawer(
       child: ListView(
@@ -226,6 +228,22 @@ class HomeScreen extends StatelessWidget {
                 Text(
                   email,
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lime.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    villa,
+                    style: const TextStyle(
+                      color: AppTheme.navy,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ],
             ),

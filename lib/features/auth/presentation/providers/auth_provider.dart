@@ -26,6 +26,7 @@ class AuthProvider extends ChangeNotifier {
 
   User? _user;
   String? _role;
+  String? _villa;
   bool _isInitializing = true;
 
   User? get user => _user;
@@ -39,6 +40,11 @@ class AuthProvider extends ChangeNotifier {
   bool get isAdmin => _role == 'admin';
   bool get isStaff => _role == 'staff';
 
+  /// Identificador de la villa asignada al usuario (ej. "villa_azul").
+  /// Null si el usuario no tiene villa asignada en Firestore.
+  String? get villaId => _villa;
+  bool get hasVilla => _villa != null && _villa!.isNotEmpty;
+
   void _subscribeToAuthChanges() {
     _authSubscription = _firebase.authStateChanges.listen((user) {
       _user = user;
@@ -46,6 +52,7 @@ class AuthProvider extends ChangeNotifier {
 
       if (user == null) {
         _role = null;
+        _villa = null;
         _isInitializing = false;
         notifyListeners();
         return;
@@ -65,13 +72,14 @@ class AuthProvider extends ChangeNotifier {
         // crear el documento /users/{uid} con role:'admin' o role:'staff'
         // explícitamente desde la consola de Firebase.
         _role = doc.exists ? (doc.data()?['role'] as String?) : null;
+        _villa = doc.exists ? (doc.data()?['villa'] as String?) : null;
         _isInitializing = false;
         notifyListeners();
       },
       onError: (_) {
-        // Error de red o de permisos: no asumimos ningún rol.
-        // El usuario verá la pantalla de login o una pantalla de error.
+        // Error de red o de permisos: no asumimos ningún rol ni villa.
         _role = null;
+        _villa = null;
         _isInitializing = false;
         notifyListeners();
       },

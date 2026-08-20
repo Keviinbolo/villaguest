@@ -14,23 +14,29 @@ class CleaningRepository {
   CleaningChecklistModel _fromDoc(String id, Map<String, dynamic> data) =>
       CleaningChecklistModel.fromJson(id, data);
 
-  Stream<List<CleaningChecklistModel>> streamChecklists() {
+  /// Stream de checklists de [villaId], ordenados por checkOutDate en cliente.
+  Stream<List<CleaningChecklistModel>> streamChecklists(String villaId) {
     return _firebase
         .streamCollection(
           collectionPath: _collectionPath,
-          queryBuilder: (q) => q.orderBy('checkOutDate', descending: true),
+          queryBuilder: (q) => q.where('villaId', isEqualTo: villaId),
         )
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => _fromDoc(doc.id, doc.data())).toList());
+        .map((snapshot) {
+          final list = snapshot.docs
+              .map((doc) => _fromDoc(doc.id, doc.data()))
+              .toList();
+          list.sort((a, b) => b.checkOutDate.compareTo(a.checkOutDate));
+          return list;
+        });
   }
 
   /// Crea un checklist para una reserva, o devuelve el ID del que ya
-  /// exista para esa reserva (evita duplicados si alguien toca el botón
-  /// dos veces).
+  /// exista (evita duplicados si se toca el botón dos veces).
   Future<String> createChecklistForBooking({
     required String bookingId,
     required String guestName,
     required DateTime checkOutDate,
+    required String villaId,
   }) async {
     final existing = await _firebase.getCollection(
       collectionPath: _collectionPath,
@@ -55,6 +61,7 @@ class CleaningRepository {
       docId: docRef.id,
       merge: false,
       data: {
+        'villaId': villaId,
         'bookingId': bookingId,
         'guestName': guestName,
         'checkOutDate': checkOutDate.toIso8601String(),
@@ -68,9 +75,6 @@ class CleaningRepository {
     return docRef.id;
   }
 
-  /// Sube la foto a Storage y, solo si la subida tiene éxito, marca la
-  /// tarea como completada en Firestore. Si la subida falla, la tarea
-  /// se queda como estaba — nunca se marca completada sin foto real.
   Future<void> completeTaskWithPhoto({
     required String checklistId,
     required String taskId,
@@ -97,7 +101,6 @@ class CleaningRepository {
     );
   }
 
-  /// Revierte una tarea a pendiente (por si se subió la foto equivocada).
   Future<void> resetTask({
     required String checklistId,
     required String taskId,
@@ -124,12 +127,6 @@ class CleaningRepository {
     );
   }
 
-  /// Borra el/los checklist(s) asociados a una reserva —Firestore y sus
-  /// fotos en Storage—. Se llama cuando se borra la reserva, para no
-  /// dejar checklists huérfanos apuntando a un bookingId que ya no
-  /// existe. Normalmente hay como mucho uno (createChecklistForBooking
-  /// evita duplicados), pero se borran todos los que aparezcan por si
-  /// acaso.
   Future<void> deleteChecklistsForBooking(String bookingId) async {
     final matches = await _firebase.getCollection(
       collectionPath: _collectionPath,
@@ -139,13 +136,7 @@ class CleaningRepository {
     for (final doc in matches.docs) {
       try {
         await _firebase.deleteFolder('cleaning_photos/${doc.id}');
-      } catch (_) {
-        // No bloqueamos el borrado del checklist si falla la limpieza
-        // de fotos (por ejemplo, si no había ninguna foto todavía, o
-        // hubo un problema de permisos puntual). En el peor caso queda
-        // algún archivo huérfano en Storage — de bajo costo y fácil de
-        // limpiar después. Lo importante es que el checklist sí se borre.
-      }
+      } catch (_) {}
 
       await _firebase.deleteDocument(
         collectionPath: _collectionPath,

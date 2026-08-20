@@ -1,20 +1,10 @@
 import 'dart:async';
 
-
 import 'package:flutter/foundation.dart';
 import 'package:villaguest/features/cleaning/data/cleaning_checklist_model.dart';
 import 'package:villaguest/features/cleaning/data/cleaning_repository.dart';
 
 
-
-/// Igual que BookingProvider: NO se suscribe a Firestore en el
-/// constructor. Se suscribe/desuscribe a través de [updateAuthorization],
-/// llamado por el ChangeNotifierProxyProvider de main.dart cada vez que
-/// cambia el estado de sesión. Esto evita el bug de suscribirse antes
-/// de que termine el login (cuando request.auth todavía es null para
-/// las reglas de Firestore) y quedar con un error "pegado" para
-/// siempre, ya que un stream rechazado por permisos no se reintenta
-/// solo cuando después sí hay sesión válida.
 class CleaningProvider extends ChangeNotifier {
   CleaningProvider({CleaningRepository? repository})
       : _repository = repository ?? CleaningRepository();
@@ -23,6 +13,7 @@ class CleaningProvider extends ChangeNotifier {
   StreamSubscription<List<CleaningChecklistModel>>? _subscription;
 
   bool _hasAccess = false;
+  String? _villaId;
   List<CleaningChecklistModel> _checklists = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -31,21 +22,19 @@ class CleaningProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// Llamado por el ChangeNotifierProxyProvider cada vez que cambia el
-  /// estado de sesión. Tanto admin como staff tienen permiso de lectura
-  /// sobre cleaning_checklists según las reglas de Firestore, así que
-  /// aquí basta con "¿hay sesión?", sin distinguir rol.
-  void updateAuthorization(bool hasAccess) {
-    if (hasAccess == _hasAccess) return;
+  void updateAuthorization(bool hasAccess, String? villaId) {
+    if (hasAccess == _hasAccess && villaId == _villaId) return;
     _hasAccess = hasAccess;
+    _villaId = villaId;
 
-    if (hasAccess) {
+    _subscription?.cancel();
+    _subscription = null;
+
+    if (hasAccess && villaId != null) {
       _isLoading = true;
       _errorMessage = null;
       _subscribe();
     } else {
-      _subscription?.cancel();
-      _subscription = null;
       _checklists = [];
       _isLoading = false;
       _errorMessage = null;
@@ -54,7 +43,7 @@ class CleaningProvider extends ChangeNotifier {
   }
 
   void _subscribe() {
-    _subscription = _repository.streamChecklists().listen(
+    _subscription = _repository.streamChecklists(_villaId!).listen(
       (data) {
         _checklists = data;
         _isLoading = false;
@@ -74,10 +63,12 @@ class CleaningProvider extends ChangeNotifier {
     required String guestName,
     required DateTime checkOutDate,
   }) {
+    assert(_villaId != null);
     return _repository.createChecklistForBooking(
       bookingId: bookingId,
       guestName: guestName,
       checkOutDate: checkOutDate,
+      villaId: _villaId!,
     );
   }
 

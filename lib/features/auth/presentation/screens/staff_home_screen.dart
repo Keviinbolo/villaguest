@@ -38,9 +38,10 @@ class StaffHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final villa = context.read<AuthProvider>().villaId ?? 'Equipo';
     return Scaffold(
       appBar: GradientAppBar(
-        title: 'VillaGuestRD — Equipo',
+        title: 'VillaGuestRD — $villa',
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
