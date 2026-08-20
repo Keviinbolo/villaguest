@@ -14,8 +14,8 @@ dependencies:
   firebase_core: ^3.8.0
   firebase_auth: ^5.3.3
   cloud_firestore: ^5.5.0
-  firebase_storage: ^12.3.7
-  
+  supabase_flutter: ^2.0.0
+
   # Estado
   provider: ^6.1.2
 
@@ -27,6 +27,7 @@ dependencies:
   # Generación y descarga de PDFs (facturas)
   pdf: ^3.11.1
   printing: ^5.13.2
+  http: ^1.6.0
   
 
 dev_dependencies:

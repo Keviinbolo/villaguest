@@ -31,13 +31,16 @@ class VillaSettingsRepository {
       data: bytes,
       contentType: 'image/jpeg',
     );
-    // Guardar la URL en el documento de la villa inmediatamente.
+    // Añade un timestamp para romper el caché de Flutter — la URL pública de
+    // Supabase es siempre la misma para el mismo path, así que Image.network
+    // devolvería la imagen antigua sin este parámetro.
+    final cacheBustedUrl = '$url?v=${DateTime.now().millisecondsSinceEpoch}';
     await _firebase.setDocument(
       collectionPath: _collection,
       docId: villaId,
-      data: {'logoUrl': url},
+      data: {'logoUrl': cacheBustedUrl},
       merge: true,
     );
-    return url;
+    return cacheBustedUrl;
   }
 }

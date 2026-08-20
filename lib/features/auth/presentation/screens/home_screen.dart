@@ -12,6 +12,7 @@ import '../../../bookings/presentation/widgets/create_booking_dialog.dart';
 import '../../../calendar/presentation/widgets/booking_calendar.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
 import '../../../maintenance/presentation/screens/maintenance_list_screen.dart';
+import '../../../settings/presentation/providers/villa_settings_provider.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 
 /// Pantalla principal tras iniciar sesión como admin.
@@ -71,10 +72,11 @@ class HomeScreen extends StatelessWidget {
     final pendingCount =
         bookingProvider.bookings.where((b) => b.status == 'pending').length;
     final activeCount = bookingProvider.activeBookings.length;
+    final logoUrl = context.watch<VillaSettingsProvider>().settings?.logoUrl;
 
     return Scaffold(
       appBar: const GradientAppBar(title: 'VillaGuestRD'),
-      drawer: _buildDrawer(context, pendingCount: pendingCount),
+      drawer: _buildDrawer(context, pendingCount: pendingCount, logoUrl: logoUrl),
       body: Column(
         children: [
           Expanded(
@@ -191,7 +193,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDrawer(BuildContext context, {required int pendingCount}) {
+  Widget _buildDrawer(BuildContext context, {required int pendingCount, String? logoUrl}) {
     final auth = context.read<AuthProvider>();
     final email = auth.user?.email ?? '';
     final villa = auth.villaId ?? '';
@@ -215,7 +217,27 @@ class HomeScreen extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.villa_outlined, color: Colors.white, size: 36),
+                logoUrl != null
+                    ? Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white54, width: 2),
+                        ),
+                        child: ClipOval(
+                          child: Image.network(
+                            logoUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const Icon(
+                              Icons.villa_outlined,
+                              color: Colors.white,
+                              size: 30,
+                            ),
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.villa_outlined, color: Colors.white, size: 36),
                 const SizedBox(height: 8),
                 const Text(
                   'VillaGuestRD',
