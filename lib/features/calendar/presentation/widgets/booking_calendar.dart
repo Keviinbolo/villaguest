@@ -21,9 +21,10 @@ import 'package:villaguest/features/bookings/presentation/booking_provider.dart'
 /// multi-mes, etc.), esta clase se puede reemplazar sin tocar el
 /// provider ni el repositorio.
 class BookingCalendar extends StatefulWidget {
-  const BookingCalendar({super.key, this.onRangeSelected});
+  const BookingCalendar({super.key, this.onRangeSelected, this.onBookedDayTap});
 
   final void Function(DateTime checkIn, DateTime checkOut)? onRangeSelected;
+  final VoidCallback? onBookedDayTap;
 
   @override
   State<BookingCalendar> createState() => _BookingCalendarState();
@@ -58,6 +59,18 @@ class _BookingCalendarState extends State<BookingCalendar> {
     setState(() {
       _visibleMonth = DateTime(_visibleMonth.year, _visibleMonth.month + 1);
     });
+  }
+
+  void _goToToday() {
+    final now = DateTime.now();
+    setState(() {
+      _visibleMonth = DateTime(now.year, now.month);
+    });
+  }
+
+  bool _isToday(DateTime day) {
+    final now = DateTime.now();
+    return day.year == now.year && day.month == now.month && day.day == now.day;
   }
 
   bool _isPast(DateTime day) {
@@ -149,17 +162,31 @@ class _BookingCalendarState extends State<BookingCalendar> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final now = DateTime.now();
+    final isCurrentMonth =
+        _visibleMonth.year == now.year && _visibleMonth.month == now.month;
+
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         IconButton(
           icon: const Icon(Icons.chevron_left),
           onPressed: _goToPreviousMonth,
         ),
-        Text(
-          '${_monthNames[_visibleMonth.month - 1]} ${_visibleMonth.year}',
-          style: Theme.of(context).textTheme.titleMedium,
+        Expanded(
+          child: Center(
+            child: Text(
+              '${_monthNames[_visibleMonth.month - 1]} ${_visibleMonth.year}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
         ),
+        if (!isCurrentMonth)
+          TextButton(
+            onPressed: _goToToday,
+            child: const Text('Hoy'),
+          )
+        else
+          const SizedBox(width: 48),
         IconButton(
           icon: const Icon(Icons.chevron_right),
           onPressed: _goToNextMonth,
@@ -219,16 +246,19 @@ class _BookingCalendarState extends State<BookingCalendar> {
     final isPast = _isPast(day);
     final isBooked = bookingProvider.isDayBooked(day);
     final isSelected = _isInSelectedRange(day);
+    final isToday = _isToday(day);
     final isDisabled = isPast || isBooked;
 
     Color backgroundColor;
     Color textColor = Colors.black87;
+    Border? border;
 
     if (isSelected) {
-      backgroundColor = Colors.blue.shade400;
+      backgroundColor = Colors.green.shade600;
       textColor = Colors.white;
     } else if (isBooked) {
-      backgroundColor = Colors.red.shade200;
+      backgroundColor = Colors.orange.shade200;
+      textColor = Colors.brown.shade800;
     } else if (isPast) {
       backgroundColor = Colors.grey.shade200;
       textColor = Colors.grey.shade500;
@@ -236,16 +266,37 @@ class _BookingCalendarState extends State<BookingCalendar> {
       backgroundColor = Colors.green.shade100;
     }
 
+    if (isToday && !isSelected) {
+      border = Border.all(
+        color: Colors.green.shade700,
+        width: 2,
+      );
+    }
+
+    VoidCallback? onTap;
+    if (isBooked && !isPast && widget.onBookedDayTap != null) {
+      onTap = widget.onBookedDayTap;
+    } else if (!isDisabled) {
+      onTap = () => _handleDayTap(day, bookingProvider);
+    }
+
     return GestureDetector(
-      onTap: isDisabled ? null : () => _handleDayTap(day, bookingProvider),
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(6),
+          border: border,
         ),
         alignment: Alignment.center,
-        child: Text('${day.day}', style: TextStyle(color: textColor)),
+        child: Text(
+          '${day.day}',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }
@@ -267,8 +318,8 @@ class _BookingCalendarState extends State<BookingCalendar> {
       runSpacing: 4,
       children: [
         legendItem(Colors.green.shade100, 'Libre'),
-        legendItem(Colors.red.shade200, 'Reservado'),
-        legendItem(Colors.blue.shade400, 'Selección'),
+        legendItem(Colors.orange.shade200, 'Reservado'),
+        legendItem(Colors.green.shade600, 'Selección'),
         legendItem(Colors.grey.shade200, 'Pasado'),
       ],
     );

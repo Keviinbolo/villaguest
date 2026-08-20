@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/maintenance/presentation/providers/maintenance_provider.dart';
 import 'package:villaguest/features/maintenance/presentation/screens/maintenance_ticket_detail_screen.dart';
@@ -65,7 +66,7 @@ class MaintenanceListScreen extends StatelessWidget {
     final provider = context.watch<MaintenanceProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Averías y mantenimiento')),
+      appBar: const GradientAppBar(title: 'Averías y mantenimiento'),
       body: _buildBody(context, provider),
       floatingActionButton: FloatingActionButton(
         tooltip: 'Reportar avería',

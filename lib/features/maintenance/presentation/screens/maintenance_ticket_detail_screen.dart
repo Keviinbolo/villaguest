@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/models/maintenance_ticket_model.dart';
@@ -94,7 +95,7 @@ class MaintenanceTicketDetailScreen extends StatelessWidget {
 
     if (matchingTicket == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Avería')),
+        appBar: const GradientAppBar(title: 'Avería'),
         body: const Center(child: Text('Esta avería ya no existe.')),
       );
     }
@@ -106,8 +107,8 @@ class MaintenanceTicketDetailScreen extends StatelessWidget {
     final ticket = matchingTicket;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(ticket.title),
+      appBar: GradientAppBar(
+        title: ticket.title,
         actions: [
           if (authProvider.isAdmin)
             IconButton(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/core/services/invoice_service.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
@@ -174,7 +175,7 @@ class BookingDetailScreen extends StatelessWidget {
       // Puede pasar si la eliminaste desde otro dispositivo/pestaña
       // mientras estabas viendo esta pantalla.
       return Scaffold(
-        appBar: AppBar(title: const Text('Reserva')),
+        appBar: const GradientAppBar(title: 'Reserva'),
         body: const Center(child: Text('Esta reserva ya no existe.')),
       );
     }
@@ -192,8 +193,8 @@ class BookingDetailScreen extends StatelessWidget {
     final balanceDue = booking.totalPrice - booking.depositPaid;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(booking.guestName),
+      appBar: GradientAppBar(
+        title: booking.guestName,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),

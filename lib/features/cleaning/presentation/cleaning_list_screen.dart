@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
 
 import '../providers/cleaning_provider.dart';
@@ -39,7 +40,7 @@ class CleaningListScreen extends StatelessWidget {
     final provider = context.watch<CleaningProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Checklists de limpieza')),
+      appBar: const GradientAppBar(title: 'Checklists de limpieza'),
       body: _buildBody(context, provider),
     );
   }

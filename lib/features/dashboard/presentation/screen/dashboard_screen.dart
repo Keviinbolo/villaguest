@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 
@@ -88,7 +89,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (bookingProvider.errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Dashboard')),
+        appBar: const GradientAppBar(title: 'Dashboard'),
         body: Center(child: Text(bookingProvider.errorMessage!)),
       );
     }
@@ -119,7 +120,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: const GradientAppBar(title: 'Dashboard'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

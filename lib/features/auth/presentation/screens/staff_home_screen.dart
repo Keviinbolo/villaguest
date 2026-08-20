@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.dart';
 
@@ -38,8 +39,8 @@ class StaffHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('VillaGuestRD — Equipo'),
+      appBar: GradientAppBar(
+        title: 'VillaGuestRD — Equipo',
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 import 'package:villaguest/features/bookings/presentation/screen/booking_detail_screen.dart';
@@ -72,7 +73,7 @@ class _GuestDetailScreenState extends State<GuestDetailScreen> {
 
     if (matchingProfile == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Huésped')),
+        appBar: const GradientAppBar(title: 'Huésped'),
         body: const Center(child: Text('Este huésped ya no tiene reservas.')),
       );
     }
@@ -88,7 +89,7 @@ class _GuestDetailScreenState extends State<GuestDetailScreen> {
     final realEmail = profile.bookings.first.guestEmail;
 
     return Scaffold(
-      appBar: AppBar(title: Text(profile.name)),
+      appBar: GradientAppBar(title: profile.name),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

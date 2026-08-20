@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/cleaning/data/cleaning_checklist_model.dart';
 import 'package:villaguest/features/cleaning/data/cleaning_task_model.dart';
@@ -108,7 +109,7 @@ class _CleaningChecklistScreenState extends State<CleaningChecklistScreen> {
 
     if (checklist == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Checklist')),
+        appBar: const GradientAppBar(title: 'Checklist'),
         body: const Center(child: Text('Este checklist ya no existe.')),
       );
     }
@@ -116,7 +117,7 @@ class _CleaningChecklistScreenState extends State<CleaningChecklistScreen> {
     final tasks = checklist.orderedTasks;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Limpieza — ${checklist.guestName}')),
+      appBar: GradientAppBar(title: 'Limpieza — ${checklist.guestName}'),
       body: Column(
         children: [
           _buildProgressHeader(checklist),
