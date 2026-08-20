@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#17BA8D"/>
+      <stop offset="100%" stop-color="#092AC9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Fondo redondeado con gradiente de la app -->
+  <rect width="512" height="512" rx="96" fill="url(#g)"/>
+
+  <!-- Sol (acento lime) -->
+  <circle cx="406" cy="106" r="34" fill="#A0D916"/>
+
+  <!-- Tejado -->
+  <polygon points="256,86 78,246 434,246" fill="white"/>
+
+  <!-- Paredes -->
+  <rect x="98" y="236" width="316" height="202" fill="white"/>
+
+  <!-- Ventana izquierda -->
+  <rect x="118" y="266" width="84" height="70" rx="10" fill="url(#g)"/>
+
+  <!-- Ventana derecha -->
+  <rect x="310" y="266" width="84" height="70" rx="10" fill="url(#g)"/>
+
+  <!-- Puerta con arco -->
+  <rect x="220" y="346" width="72" height="92" fill="url(#g)"/>
+  <ellipse cx="256" cy="346" rx="36" ry="30" fill="url(#g)"/>
+
+  <!-- Línea de suelo (base de la villa) -->
+  <rect x="60" y="434" width="392" height="14" rx="7" fill="white" opacity="0.35"/>
+</svg>
