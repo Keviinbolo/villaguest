@@ -5,15 +5,6 @@ import 'package:villaguest/features/bookings/data/models/booking_model.dart';
 import 'package:villaguest/features/calendar/data/repositories/availability_repository.dart';
 
 
-/// Estado de reservas para toda la app (calendario, dashboard, etc.).
-///
-/// A diferencia de la primera versión, YA NO se suscribe a Firestore en
-/// el constructor. Se suscribe/desuscribe explícitamente a través de
-/// [updateAuthorization], que llama el ChangeNotifierProxyProvider de
-/// main.dart cada vez que cambia el rol de la sesión. Así, una cuenta
-/// de staff (que no tiene permiso de lectura sobre `bookings` según las
-/// reglas de Firestore) nunca intenta siquiera abrir el stream, en vez
-/// de intentarlo y fallar con permission-denied.
 class BookingProvider extends ChangeNotifier {
   BookingProvider({AvailabilityRepository? repository})
       : _repository = repository ?? AvailabilityRepository();
@@ -22,6 +13,7 @@ class BookingProvider extends ChangeNotifier {
   StreamSubscription<List<BookingModel>>? _subscription;
 
   bool _hasAccess = false;
+  String? _villaId;
   List<BookingModel> _bookings = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -35,23 +27,19 @@ class BookingProvider extends ChangeNotifier {
   List<BookingModel> get activeBookings =>
       _bookings.where((b) => _activeStatuses.contains(b.status)).toList();
 
-  /// Llamado por el ChangeNotifierProxyProvider cada vez que cambia el
-  /// rol de la sesión actual (login, logout, o resolución del rol tras
-  /// el login). Si [hasAccess] es true y todavía no estábamos
-  /// suscritos, se suscribe. Si es false, se desuscribe y limpia el
-  /// estado (por si había datos de una sesión de admin anterior en el
-  /// mismo navegador).
-  void updateAuthorization(bool hasAccess) {
-    if (hasAccess == _hasAccess) return;
+  void updateAuthorization(bool hasAccess, String? villaId) {
+    if (hasAccess == _hasAccess && villaId == _villaId) return;
     _hasAccess = hasAccess;
+    _villaId = villaId;
 
-    if (hasAccess) {
+    _subscription?.cancel();
+    _subscription = null;
+
+    if (hasAccess && villaId != null) {
       _isLoading = true;
       _errorMessage = null;
       _subscribe();
     } else {
-      _subscription?.cancel();
-      _subscription = null;
       _bookings = [];
       _isLoading = false;
       _errorMessage = null;
@@ -60,7 +48,7 @@ class BookingProvider extends ChangeNotifier {
   }
 
   void _subscribe() {
-    _subscription = _repository.streamBookings().listen(
+    _subscription = _repository.streamBookings(_villaId!).listen(
       (bookings) {
         _bookings = bookings;
         _isLoading = false;
@@ -96,11 +84,13 @@ class BookingProvider extends ChangeNotifier {
   }
 
   Future<String> createBooking(BookingModel booking) {
-    return _repository.createBooking(booking);
+    assert(_villaId != null);
+    return _repository.createBooking(booking, _villaId!);
   }
 
   Future<void> updateBooking(BookingModel booking) {
-    return _repository.updateBooking(booking);
+    assert(_villaId != null);
+    return _repository.updateBooking(booking, _villaId!);
   }
 
   Future<void> updateStatus({

@@ -1,15 +1,10 @@
 import 'dart:async';
 
-
 import 'package:flutter/foundation.dart';
 
 import '../../data/models/maintenance_ticket_model.dart';
 import '../../data/repositories/maintenance_repository.dart';
 
-/// Mismo patrón que BookingProvider y CleaningProvider: NO se suscribe
-/// a Firestore en el constructor. Se conecta a AuthProvider vía
-/// ChangeNotifierProxyProvider en main.dart, que llama
-/// updateAuthorization() cada vez que cambia la sesión.
 class MaintenanceProvider extends ChangeNotifier {
   MaintenanceProvider({MaintenanceRepository? repository})
       : _repository = repository ?? MaintenanceRepository();
@@ -18,6 +13,7 @@ class MaintenanceProvider extends ChangeNotifier {
   StreamSubscription<List<MaintenanceTicketModel>>? _subscription;
 
   bool _hasAccess = false;
+  String? _villaId;
   List<MaintenanceTicketModel> _tickets = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -29,19 +25,19 @@ class MaintenanceProvider extends ChangeNotifier {
   List<MaintenanceTicketModel> get openTickets =>
       _tickets.where((t) => t.status != 'resolved').toList();
 
-  /// Admin y staff tienen permiso sobre maintenance_tickets, así que
-  /// basta con "¿hay sesión?".
-  void updateAuthorization(bool hasAccess) {
-    if (hasAccess == _hasAccess) return;
+  void updateAuthorization(bool hasAccess, String? villaId) {
+    if (hasAccess == _hasAccess && villaId == _villaId) return;
     _hasAccess = hasAccess;
+    _villaId = villaId;
 
-    if (hasAccess) {
+    _subscription?.cancel();
+    _subscription = null;
+
+    if (hasAccess && villaId != null) {
       _isLoading = true;
       _errorMessage = null;
       _subscribe();
     } else {
-      _subscription?.cancel();
-      _subscription = null;
       _tickets = [];
       _isLoading = false;
       _errorMessage = null;
@@ -50,7 +46,7 @@ class MaintenanceProvider extends ChangeNotifier {
   }
 
   void _subscribe() {
-    _subscription = _repository.streamTickets().listen(
+    _subscription = _repository.streamTickets(_villaId!).listen(
       (data) {
         _tickets = data;
         _isLoading = false;
@@ -72,11 +68,13 @@ class MaintenanceProvider extends ChangeNotifier {
     required String reportedBy,
     Uint8List? photoBytes,
   }) {
+    assert(_villaId != null);
     return _repository.createTicket(
       title: title,
       description: description,
       priority: priority,
       reportedBy: reportedBy,
+      villaId: _villaId!,
       photoBytes: photoBytes,
     );
   }

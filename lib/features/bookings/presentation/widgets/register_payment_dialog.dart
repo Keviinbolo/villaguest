@@ -49,18 +49,32 @@ class _RegisterPaymentDialogState extends State<RegisterPaymentDialog> {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final provider = context.read<BookingProvider>();
+    final booking = widget.booking;
+    final willComplete =
+        booking.depositPaid + amount >= booking.totalPrice &&
+        booking.status != 'completed';
 
     try {
       await provider.registerPayment(
-        bookingId: widget.booking.id,
-        currentDeposit: widget.booking.depositPaid,
+        bookingId: booking.id,
+        currentDeposit: booking.depositPaid,
         amount: amount,
       );
+
+      if (willComplete) {
+        await provider.updateStatus(
+          bookingId: booking.id,
+          newStatus: 'completed',
+        );
+      }
+
       navigator.pop();
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            'Pago de RD\$ ${amount.toStringAsFixed(2)} registrado.',
+            willComplete
+                ? 'Pago registrado. Reserva marcada como completada.'
+                : 'Pago de RD\$ ${amount.toStringAsFixed(2)} registrado.',
           ),
         ),
       );

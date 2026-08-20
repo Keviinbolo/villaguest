@@ -5,9 +5,6 @@ import 'package:flutter/foundation.dart';
 import '../../data/models/guest_note_model.dart';
 import '../../data/repositories/guest_repository.dart';
 
-/// Mismo patrón que los demás providers: NO se suscribe en el
-/// constructor. Se conecta a AuthProvider vía ChangeNotifierProxyProvider
-/// en main.dart.
 class GuestProvider extends ChangeNotifier {
   GuestProvider({GuestRepository? repository})
       : _repository = repository ?? GuestRepository();
@@ -16,6 +13,7 @@ class GuestProvider extends ChangeNotifier {
   StreamSubscription<Map<String, GuestNoteModel>>? _subscription;
 
   bool _hasAccess = false;
+  String? _villaId;
   Map<String, GuestNoteModel> _notes = {};
   bool _isLoading = true;
   String? _errorMessage;
@@ -24,19 +22,19 @@ class GuestProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// Solo admin tiene permiso sobre `guests` (misma regla que
-  /// `bookings`, del cual este feature depende).
-  void updateAuthorization(bool hasAccess) {
-    if (hasAccess == _hasAccess) return;
+  void updateAuthorization(bool hasAccess, String? villaId) {
+    if (hasAccess == _hasAccess && villaId == _villaId) return;
     _hasAccess = hasAccess;
+    _villaId = villaId;
 
-    if (hasAccess) {
+    _subscription?.cancel();
+    _subscription = null;
+
+    if (hasAccess && villaId != null) {
       _isLoading = true;
       _errorMessage = null;
       _subscribe();
     } else {
-      _subscription?.cancel();
-      _subscription = null;
       _notes = {};
       _isLoading = false;
       _errorMessage = null;
@@ -45,7 +43,7 @@ class GuestProvider extends ChangeNotifier {
   }
 
   void _subscribe() {
-    _subscription = _repository.streamGuestNotes().listen(
+    _subscription = _repository.streamGuestNotes(_villaId!).listen(
       (data) {
         _notes = data;
         _isLoading = false;
@@ -65,7 +63,13 @@ class GuestProvider extends ChangeNotifier {
     required String notes,
     required bool isVip,
   }) {
-    return _repository.upsertGuestNote(email: email, notes: notes, isVip: isVip);
+    assert(_villaId != null);
+    return _repository.upsertGuestNote(
+      email: email,
+      notes: notes,
+      isVip: isVip,
+      villaId: _villaId!,
+    );
   }
 
   @override

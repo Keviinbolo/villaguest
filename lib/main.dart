@@ -20,8 +20,6 @@ void main() {
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
 
-  // Espera a que Firebase esté listo Y a que pase al menos 1 segundo,
-  // para que la splash siempre sea visible aunque el servidor responda rápido.
   static final Future<void> _init = Future.wait([
     Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
     Future.delayed(const Duration(seconds: 3)),
@@ -29,21 +27,24 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'VillaGuestRD',
-      theme: AppTheme.light,
-      home: FutureBuilder<void>(
-        future: _init,
-        builder: (context, snapshot) {
-          // Firebase aún inicializando → splash
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const SplashScreen();
-          }
+    return FutureBuilder<void>(
+      future: _init,
+      builder: (context, snapshot) {
+        // Firebase inicializando → splash sin providers (no se necesitan aún)
+        if (snapshot.connectionState != ConnectionState.done) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            home: const SplashScreen(),
+          );
+        }
 
-          // Error al conectar con Firebase
-          if (snapshot.hasError) {
-            return Scaffold(
+        // Error al conectar con Firebase
+        if (snapshot.hasError) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light,
+            home: Scaffold(
               body: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(32),
@@ -53,50 +54,64 @@ class MainApp extends StatelessWidget {
                   ),
                 ),
               ),
-            );
-          }
-
-          // Firebase listo → montar providers y puerta de auth
-          return MultiProvider(
-            providers: [
-              ChangeNotifierProvider(create: (_) => AuthProvider()),
-              ChangeNotifierProxyProvider<AuthProvider, BookingProvider>(
-                create: (_) => BookingProvider(),
-                update: (_, authProvider, bookingProvider) {
-                  bookingProvider!.updateAuthorization(
-                    authProvider.isLoggedIn && authProvider.isAdmin,
-                  );
-                  return bookingProvider;
-                },
-              ),
-              ChangeNotifierProxyProvider<AuthProvider, CleaningProvider>(
-                create: (_) => CleaningProvider(),
-                update: (_, authProvider, cleaningProvider) {
-                  cleaningProvider!.updateAuthorization(authProvider.isLoggedIn);
-                  return cleaningProvider;
-                },
-              ),
-              ChangeNotifierProxyProvider<AuthProvider, MaintenanceProvider>(
-                create: (_) => MaintenanceProvider(),
-                update: (_, authProvider, maintenanceProvider) {
-                  maintenanceProvider!.updateAuthorization(authProvider.isLoggedIn);
-                  return maintenanceProvider;
-                },
-              ),
-              ChangeNotifierProxyProvider<AuthProvider, GuestProvider>(
-                create: (_) => GuestProvider(),
-                update: (_, authProvider, guestProvider) {
-                  guestProvider!.updateAuthorization(
-                    authProvider.isLoggedIn && authProvider.isAdmin,
-                  );
-                  return guestProvider;
-                },
-              ),
-            ],
-            child: const AuthGate(),
+            ),
           );
-        },
-      ),
+        }
+
+        // Firebase listo: MultiProvider envuelve al MaterialApp completo
+        // para que todas las rutas navegadas tengan acceso a los providers.
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AuthProvider()),
+            ChangeNotifierProxyProvider<AuthProvider, BookingProvider>(
+              create: (_) => BookingProvider(),
+              update: (_, auth, provider) {
+                provider!.updateAuthorization(
+                  auth.isLoggedIn && auth.isAdmin && auth.hasVilla,
+                  auth.villaId,
+                );
+                return provider;
+              },
+            ),
+            ChangeNotifierProxyProvider<AuthProvider, CleaningProvider>(
+              create: (_) => CleaningProvider(),
+              update: (_, auth, provider) {
+                provider!.updateAuthorization(
+                  auth.isLoggedIn && auth.hasVilla,
+                  auth.villaId,
+                );
+                return provider;
+              },
+            ),
+            ChangeNotifierProxyProvider<AuthProvider, MaintenanceProvider>(
+              create: (_) => MaintenanceProvider(),
+              update: (_, auth, provider) {
+                provider!.updateAuthorization(
+                  auth.isLoggedIn && auth.hasVilla,
+                  auth.villaId,
+                );
+                return provider;
+              },
+            ),
+            ChangeNotifierProxyProvider<AuthProvider, GuestProvider>(
+              create: (_) => GuestProvider(),
+              update: (_, auth, provider) {
+                provider!.updateAuthorization(
+                  auth.isLoggedIn && auth.isAdmin && auth.hasVilla,
+                  auth.villaId,
+                );
+                return provider;
+              },
+            ),
+          ],
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'VillaGuestRD',
+            theme: AppTheme.light,
+            home: const AuthGate(),
+          ),
+        );
+      },
     );
   }
 }
