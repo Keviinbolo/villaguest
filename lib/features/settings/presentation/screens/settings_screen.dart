@@ -273,16 +273,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ? Image.network(
                                 settings!.logoUrl!,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => const Icon(
-                                  Icons.villa_outlined,
-                                  size: 44,
-                                  color: Colors.white,
+                                errorBuilder: (_, _, _) => Image.asset(
+                                  'assets/icon/icon.png',
+                                  fit: BoxFit.cover,
                                 ),
                               )
-                            : const Icon(
-                                Icons.villa_outlined,
-                                size: 44,
-                                color: Colors.white,
+                            : Image.asset(
+                                'assets/icon/icon.png',
+                                fit: BoxFit.cover,
                               ),
                   ),
                 ),
