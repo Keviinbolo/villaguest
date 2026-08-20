@@ -22,6 +22,9 @@
       }
     }
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "firestore": {
     "database": "(default)",
     "location": "europe-southwest1",
