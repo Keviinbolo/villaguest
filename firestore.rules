@@ -7,66 +7,90 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function userRoleDoc() {
+    function userDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    // Por compatibilidad hacia atrás: si tu cuenta de administrador
-    // original todavía no tiene un documento en /users, se sigue
-    // tratando como admin. Cuentas de staff SIEMPRE deben tener su
-    // documento explícito con role == 'staff' — nunca hay una cuenta
-    // que "por defecto" termine siendo staff.
+    function userDocExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // FIX Vuln 1: El fallback "sin documento = admin" fue eliminado.
+    // Todo usuario DEBE tener un documento /users/{uid} con role:'admin'
+    // creado manualmente desde Firebase Console para tener acceso.
+    // Un usuario autenticado sin documento no tiene ningún privilegio.
     function isAdmin() {
       return isSignedIn() &&
-        (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
-         userRoleDoc().data.role == 'admin');
+        userDocExists() &&
+        userDoc().data.role == 'admin';
     }
 
     function isStaff() {
       return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        userRoleDoc().data.role == 'staff';
+        userDocExists() &&
+        userDoc().data.role == 'staff';
     }
 
-    // Reservas: solo administrador. El equipo de limpieza/mantenimiento
-    // no necesita ver datos de huéspedes ni de pago directamente — el
-    // checklist ya trae el nombre y la fecha de salida denormalizados.
+    // FIX Vuln 2: Aislamiento por villa.
+    // Devuelve el villaId asignado al usuario autenticado.
+    function myVilla() {
+      return userDoc().data.villa;
+    }
+
+    // Verifica que el documento existente pertenece a la villa del usuario.
+    function resourceBelongsToMyVilla() {
+      return resource.data.villaId == myVilla();
+    }
+
+    // Verifica que el documento que se va a escribir pertenece a la villa del usuario.
+    function requestBelongsToMyVilla() {
+      return request.resource.data.villaId == myVilla();
+    }
+
+    // ─── Reservas ────────────────────────────────────────────────────────
+    // Solo admin. Lectura y escritura restringidas a la propia villa.
     match /bookings/{bookingId} {
-      allow read, write: if isAdmin();
+      allow read:   if isAdmin() && resourceBelongsToMyVilla();
+      allow create: if isAdmin() && requestBelongsToMyVilla();
+      allow update: if isAdmin() && resourceBelongsToMyVilla() && requestBelongsToMyVilla();
+      allow delete: if isAdmin() && resourceBelongsToMyVilla();
     }
 
-    // Checklists de limpieza: admin y staff pueden leer y actualizar
-    // (marcar tareas, subir fotos). Crear y borrar queda solo para
-    // admin, porque se crean/borran en cascada desde el detalle de
-    // una reserva.
+    // ─── Checklists de limpieza ───────────────────────────────────────────
+    // Admin y staff pueden leer y actualizar tareas.
+    // Solo admin puede crear y borrar (se gestiona desde el detalle de reserva).
     match /cleaning_checklists/{checklistId} {
-      allow read, update: if isAdmin() || isStaff();
-      allow create, delete: if isAdmin();
+      allow read:   if (isAdmin() || isStaff()) && resourceBelongsToMyVilla();
+      allow update: if (isAdmin() || isStaff()) && resourceBelongsToMyVilla();
+      allow create: if isAdmin() && requestBelongsToMyVilla();
+      allow delete: if isAdmin() && resourceBelongsToMyVilla();
     }
 
-    // Averías/mantenimiento: admin y staff pueden leer, crear y
-    // actualizar (cambiar estado). Solo admin puede borrar.
+    // ─── Tickets de mantenimiento ─────────────────────────────────────────
+    // Admin y staff pueden leer, crear y actualizar.
+    // Solo admin puede borrar.
     match /maintenance_tickets/{ticketId} {
-      allow read, create, update: if isAdmin() || isStaff();
-      allow delete: if isAdmin();
+      allow read:   if (isAdmin() || isStaff()) && resourceBelongsToMyVilla();
+      allow create: if (isAdmin() || isStaff()) && requestBelongsToMyVilla();
+      allow update: if (isAdmin() || isStaff()) && resourceBelongsToMyVilla();
+      allow delete: if isAdmin() && resourceBelongsToMyVilla();
     }
 
-    // Huéspedes: solo admin, mismo criterio que bookings (del cual
-    // depende esta feature).
+    // ─── Huéspedes ────────────────────────────────────────────────────────
+    // Solo admin, misma restricción que bookings.
     match /guests/{guestId} {
-      allow read, write: if isAdmin();
+      allow read:   if isAdmin() && resourceBelongsToMyVilla();
+      allow create: if isAdmin() && requestBelongsToMyVilla();
+      allow update: if isAdmin() && resourceBelongsToMyVilla() && requestBelongsToMyVilla();
+      allow delete: if isAdmin() && resourceBelongsToMyVilla();
     }
 
-    // Roles de usuario: cada quien puede leer SU PROPIO documento (para
-    // que la app sepa qué pantalla mostrarle), pero solo el admin puede
-    // crear o cambiar roles — así ningún staff puede auto-promoverse.
+    // ─── Perfiles de usuario ──────────────────────────────────────────────
+    // Cada usuario puede leer SOLO su propio documento (para que la app
+    // sepa su rol y villa). Escritura solo por admin.
     match /users/{uid} {
-      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow read:  if isSignedIn() && request.auth.uid == uid;
       allow write: if isAdmin();
     }
-
-    // A medida que agregues colecciones nuevas (maintenance_tickets,
-    // guests, payments...), repite este patrón: decide explícitamente
-    // qué puede ver/tocar cada rol.
   }
 }
