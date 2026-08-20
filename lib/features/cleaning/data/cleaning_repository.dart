@@ -127,10 +127,12 @@ class CleaningRepository {
     );
   }
 
-  Future<void> deleteChecklistsForBooking(String bookingId) async {
+  Future<void> deleteChecklistsForBooking(String bookingId, String villaId) async {
     final matches = await _firebase.getCollection(
       collectionPath: _collectionPath,
-      queryBuilder: (q) => q.where('bookingId', isEqualTo: bookingId),
+      queryBuilder: (q) => q
+          .where('villaId', isEqualTo: villaId)
+          .where('bookingId', isEqualTo: bookingId),
     );
 
     for (final doc in matches.docs) {

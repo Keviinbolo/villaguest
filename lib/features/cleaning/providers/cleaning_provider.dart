@@ -96,7 +96,8 @@ class CleaningProvider extends ChangeNotifier {
   }
 
   Future<void> deleteChecklistsForBooking(String bookingId) {
-    return _repository.deleteChecklistsForBooking(bookingId);
+    if (_villaId == null) return Future.value();
+    return _repository.deleteChecklistsForBooking(bookingId, _villaId!);
   }
 
   @override

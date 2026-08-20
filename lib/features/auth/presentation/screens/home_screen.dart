@@ -237,7 +237,20 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                       )
-                    : const Icon(Icons.villa_outlined, color: Colors.white, size: 36),
+                    : Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white54, width: 2),
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/icon/icon.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
                 const SizedBox(height: 8),
                 const Text(
                   'VillaGuestRD',

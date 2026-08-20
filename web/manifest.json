@@ -1,12 +1,12 @@
 {
-    "name": "villaguest",
-    "short_name": "villaguest",
+    "name": "VillaGuestRD",
+    "short_name": "VillaGuestRD",
+    "description": "Gestión de reservas y operaciones de tu villa en República Dominicana.",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Gestión de tu villa en República Dominicana",
     "orientation": "portrait-primary",
+    "background_color": "#092AC9",
+    "theme_color": "#17BA8D",
     "prefer_related_applications": false,
     "icons": [
         {

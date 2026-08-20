@@ -110,10 +110,10 @@ class _LoginScreenState extends State<LoginScreen>
                         color: Colors.white.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.villa_outlined,
-                        size: 56,
-                        color: Colors.white,
+                      child: const Image(
+                        image: AssetImage('assets/icon/icon.png'),
+                        width: 56,
+                        height: 56,
                       ),
                     ),
                     const SizedBox(height: 16),

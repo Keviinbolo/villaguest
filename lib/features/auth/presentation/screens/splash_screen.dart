@@ -120,10 +120,11 @@ class _SplashScreenState extends State<SplashScreen>
                                       width: 1.5,
                                     ),
                                   ),
-                                  child: const Icon(
-                                    Icons.villa_outlined,
-                                    size: 52,
-                                    color: Colors.white,
+                                  child: ClipOval(
+                                    child: Image.asset(
+                                      'assets/icon/icon.png',
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
                               ),
