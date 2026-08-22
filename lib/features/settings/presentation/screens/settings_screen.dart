@@ -20,6 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _displayNameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
+  final _priceController = TextEditingController();
 
   bool _initialized = false;
   bool _isSaving = false;
@@ -29,16 +30,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _displayNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
 
-  // Rellena los campos la primera vez que llegan los settings desde Firestore.
   void _initControllers(VillaSettingsModel settings) {
     if (_initialized) return;
     _initialized = true;
     _displayNameController.text = settings.displayName;
     _phoneController.text = settings.contactPhone ?? '';
     _emailController.text = settings.contactEmail ?? '';
+    _priceController.text =
+        settings.pricePerNight != null ? settings.pricePerNight!.toStringAsFixed(0) : '';
   }
 
   Future<void> _pickLogo() async {
@@ -94,14 +97,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
 
     try {
-      final updated = current.copyWith(
+      final updated = VillaSettingsModel(
+        villaId: current.villaId,
         displayName: _displayNameController.text.trim(),
+        logoUrl: current.logoUrl,
         contactPhone: _phoneController.text.trim().isEmpty
             ? null
             : _phoneController.text.trim(),
         contactEmail: _emailController.text.trim().isEmpty
             ? null
             : _emailController.text.trim(),
+        pricePerNight: double.tryParse(_priceController.text.trim()),
       );
       await provider.updateSettings(updated);
       messenger.showSnackBar(
@@ -213,6 +219,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           keyboardType: TextInputType.emailAddress,
                         ),
+                        const SizedBox(height: 24),
+                        _sectionLabel(context, 'Precios'),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _priceController,
+                          decoration: const InputDecoration(
+                            labelText: 'Precio por noche (RD\$)',
+                            hintText: 'Ej. 5000',
+                            border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.nights_stay_outlined),
+                          ),
+                          keyboardType:
+                              const TextInputType.numberWithOptions(decimal: true),
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return null;
+                            if (double.tryParse(v.trim()) == null) {
+                              return 'Ingresa un número válido';
+                            }
+                            return null;
+                          },
+                        ),
                         const SizedBox(height: 32),
                         _sectionLabel(context, 'Cuenta'),
                         const SizedBox(height: 8),
@@ -242,13 +269,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTheme.teal, AppTheme.navy],
-        ),
-      ),
+      color: AppTheme.teal,
       child: Column(
         children: [
           GestureDetector(

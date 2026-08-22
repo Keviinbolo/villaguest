@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'app_theme.dart';
 
-/// AppBar con gradiente teal → navy. Úsalo en lugar del AppBar estándar
+/// AppBar de marca (teal sólido). Úsalo en lugar del AppBar estándar
 /// en todas las pantallas para mantener consistencia visual.
 class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
   const GradientAppBar({
@@ -17,10 +17,6 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
   final bool automaticallyImplyLeading;
 
-  // Color del fondo de la app — se usa en iconos para que contrasten
-  // suavemente sobre el gradiente sin competir con el título blanco.
-  static const _iconColor = Color(0xFFD0D8F5);
-
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
@@ -34,20 +30,12 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       actions: actions,
       automaticallyImplyLeading: automaticallyImplyLeading,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppTheme.teal,
       elevation: 0,
-      scrolledUnderElevation: 0,
-      iconTheme: const IconThemeData(color: _iconColor),
-      actionsIconTheme: const IconThemeData(color: _iconColor),
-      flexibleSpace: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppTheme.teal, AppTheme.navy],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ),
+      scrolledUnderElevation: 2,
+      shadowColor: AppTheme.teal.withValues(alpha: 0.4),
+      iconTheme: const IconThemeData(color: Colors.white),
+      actionsIconTheme: const IconThemeData(color: Colors.white),
     );
   }
 }

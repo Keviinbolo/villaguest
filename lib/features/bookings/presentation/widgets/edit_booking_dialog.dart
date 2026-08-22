@@ -30,6 +30,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
   late DateTime _checkOut;
 
   bool _isSubmitting = false;
+  String? _errorMessage;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
@@ -101,15 +102,16 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
   }
 
   Future<void> _submit() async {
+    setState(() => _errorMessage = null);
+
     if (!_formKey.currentState!.validate()) return;
 
     final totalPrice = double.parse(_totalPriceController.text.trim());
     final depositPaid = double.parse(_depositController.text.trim());
 
     if (depositPaid > totalPrice) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La señal no puede ser mayor al precio total.')),
-      );
+      setState(() =>
+          _errorMessage = 'La señal no puede superar el precio total (RD\$ ${totalPrice.toStringAsFixed(0)}).');
       return;
     }
 
@@ -134,10 +136,12 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
       navigator.pop();
       messenger.showSnackBar(const SnackBar(content: Text('Reserva actualizada.')));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('No se pudo actualizar: $e')),
-      );
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'No se pudo actualizar: $e';
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -146,6 +150,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       title: const Text('Editar reserva'),
       content: SingleChildScrollView(
         child: Form(
@@ -221,7 +226,10 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _totalPriceController,
-                      decoration: const InputDecoration(labelText: 'Precio total (RD\$)'),
+                      decoration: const InputDecoration(
+                        labelText: 'Precio total (RD\$)',
+                        border: OutlineInputBorder(),
+                      ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       validator: _validatePositiveNumber,
                     ),
@@ -230,13 +238,45 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _depositController,
-                      decoration: const InputDecoration(labelText: 'Señal (RD\$)'),
+                      decoration: const InputDecoration(
+                        labelText: 'Señal (RD\$)',
+                        border: OutlineInputBorder(),
+                      ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       validator: _validatePositiveNumber,
                     ),
                   ),
                 ],
               ),
+
+              // ── Error inline ─────────────────────────────────────────
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.error_outline,
+                          color: colorScheme.error, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: colorScheme.onErrorContainer,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

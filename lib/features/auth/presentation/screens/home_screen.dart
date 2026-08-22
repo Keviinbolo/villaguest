@@ -109,13 +109,7 @@ class HomeScreen extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTheme.teal, AppTheme.navy],
-        ),
-      ),
+      decoration: const BoxDecoration(color: AppTheme.navy),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -204,13 +198,7 @@ class HomeScreen extends StatelessWidget {
         children: [
           Container(
             height: 160,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppTheme.teal, AppTheme.navy],
-              ),
-            ),
+            decoration: const BoxDecoration(color: AppTheme.navy),
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             alignment: Alignment.bottomLeft,
             child: Column(
