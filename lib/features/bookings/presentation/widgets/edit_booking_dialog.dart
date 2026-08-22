@@ -34,6 +34,20 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
+  static String _friendlyError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('permission-denied')) {
+      return 'Sin permisos para modificar reservas. Contacta al administrador.';
+    }
+    if (msg.contains('unavailable') || msg.contains('network')) {
+      return 'Sin conexión. Verifica tu internet e intenta de nuevo.';
+    }
+    if (msg.contains('chocan') || msg.contains('disponibles')) {
+      return 'Las nuevas fechas chocan con otra reserva existente.';
+    }
+    return 'No se pudo actualizar la reserva. Intenta de nuevo.';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -138,7 +152,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'No se pudo actualizar: $e';
+          _errorMessage = _friendlyError(e);
           _isSubmitting = false;
         });
       }

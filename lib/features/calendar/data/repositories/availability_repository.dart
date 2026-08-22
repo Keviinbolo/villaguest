@@ -40,10 +40,10 @@ class AvailabilityRepository {
 
   /// Reservas de [villaId] que se solapan con [from]-[to].
   ///
-  /// El filtro por checkIn se hace en Firestore (índice de un solo campo);
-  /// villaId, status y checkOut se filtran en cliente para evitar un
-  /// índice compuesto. El filtro de villaId en cliente es esencial:
-  /// sin él, reservas de otras villas bloquearían fechas incorrectamente.
+  /// Filtra por villaId en Firestore para cumplir las reglas de seguridad
+  /// (las reglas rechazan queries que no incluyan villaId porque podrían
+  /// devolver documentos de otras villas). El filtrado por fechas se hace
+  /// en cliente, igual que en streamBookings.
   Future<List<BookingModel>> getOverlappingBookings({
     required DateTime from,
     required DateTime to,
@@ -52,16 +52,16 @@ class AvailabilityRepository {
   }) async {
     final snapshot = await _firebase.getCollection(
       collectionPath: _collectionPath,
-      queryBuilder: (q) => q.where('checkIn', isLessThan: to.toIso8601String()),
+      queryBuilder: (q) => q.where('villaId', isEqualTo: villaId),
     );
 
     return snapshot.docs
-        .where((doc) => doc.data()['villaId'] == villaId)
         .map((doc) => _fromDoc(doc.id, doc.data()))
         .where(
           (b) =>
               b.id != excludeBookingId &&
               _activeStatuses.contains(b.status) &&
+              b.checkIn.isBefore(to) &&
               b.checkOut.isAfter(from),
         )
         .toList();

@@ -38,6 +38,21 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
+  static String _friendlyError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('permission-denied')) {
+      return 'Sin permisos para crear reservas. Contacta al administrador.';
+    }
+    if (msg.contains('unavailable') || msg.contains('network')) {
+      return 'Sin conexión. Verifica tu internet e intenta de nuevo.';
+    }
+    if (msg.contains('ya no están disponibles') ||
+        msg.contains('disponibles')) {
+      return 'Las fechas seleccionadas ya están ocupadas por otra reserva.';
+    }
+    return 'No se pudo crear la reserva. Intenta de nuevo.';
+  }
+
   int get _nights => widget.checkOut.difference(widget.checkIn).inDays;
 
   @override
@@ -100,7 +115,7 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'No se pudo crear la reserva: $e';
+          _errorMessage = _friendlyError(e);
           _isSubmitting = false;
         });
       }

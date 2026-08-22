@@ -40,7 +40,9 @@ class CleaningRepository {
   }) async {
     final existing = await _firebase.getCollection(
       collectionPath: _collectionPath,
-      queryBuilder: (q) => q.where('bookingId', isEqualTo: bookingId),
+      queryBuilder: (q) => q
+          .where('villaId', isEqualTo: villaId)
+          .where('bookingId', isEqualTo: bookingId),
     );
 
     if (existing.docs.isNotEmpty) {

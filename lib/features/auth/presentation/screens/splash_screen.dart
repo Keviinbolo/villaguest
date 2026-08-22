@@ -38,7 +38,6 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    // Anillo exterior que se expande y desvanece al principio
     _ringScale = Tween<double>(begin: 0.6, end: 1.8).animate(
       CurvedAnimation(
         parent: _controller,
@@ -63,124 +62,122 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppTheme.teal, AppTheme.navy],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Center(
-              child: AnimatedBuilder(
-                animation: _controller,
-                builder: (context, _) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SizedBox(
-                        width: 120,
-                        height: 120,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Anillo exterior que se expande y desvanece
-                            Opacity(
-                              opacity: (1.0 - _controller.value * 2).clamp(0.0, 0.4),
-                              child: Transform.scale(
-                                scale: _ringScale.value,
-                                child: Container(
-                                  width: 110,
-                                  height: 110,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 2,
+      backgroundColor: AppTheme.teal,
+      body: Stack(
+        children: [
+          Center(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      height: 120,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Opacity(
+                            opacity:
+                                (1.0 - _controller.value * 2).clamp(0.0, 0.4),
+                            child: Transform.scale(
+                              scale: _ringScale.value,
+                              child: Container(
+                                width: 110,
+                                height: 110,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Colors.white, width: 2),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Opacity(
+                            opacity: _iconOpacity.value,
+                            child: Transform.scale(
+                              scale: _iconScale.value,
+                              child: Container(
+                                width: 100,
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color:
+                                      Colors.white.withValues(alpha: 0.18),
+                                  border: Border.all(
+                                    color:
+                                        Colors.white.withValues(alpha: 0.5),
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black
+                                          .withValues(alpha: 0.15),
+                                      blurRadius: 24,
+                                      offset: const Offset(0, 8),
                                     ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/icon/icon.png',
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
                               ),
                             ),
-                            // Ícono principal
-                            Opacity(
-                              opacity: _iconOpacity.value,
-                              child: Transform.scale(
-                                scale: _iconScale.value,
-                                child: Container(
-                                  width: 100,
-                                  height: 100,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white.withValues(alpha: 0.15),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.4),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: ClipOval(
-                                    child: Image.asset(
-                                      'assets/icon/icon.png',
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 28),
-                      Opacity(
-                        opacity: _textOpacity.value,
-                        child: const Column(
-                          children: [
-                            Text(
-                              'VillaGuestRD',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 30,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1.5,
-                              ),
+                    ),
+                    const SizedBox(height: 28),
+                    Opacity(
+                      opacity: _textOpacity.value,
+                      child: const Column(
+                        children: [
+                          Text(
+                            'VillaGuestRD',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
                             ),
-                            SizedBox(height: 6),
-                            Text(
-                              'Gestión inteligente de tu villa',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 13,
-                                letterSpacing: 0.3,
-                              ),
+                          ),
+                          SizedBox(height: 6),
+                          Text(
+                            'Gestión inteligente de tu villa',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              letterSpacing: 0.3,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              },
             ),
-            // Indicador de carga sutil al fondo
-            Positioned(
-              bottom: 48,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white.withValues(alpha: 0.5),
-                  ),
+          ),
+          Positioned(
+            bottom: 48,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white.withValues(alpha: 0.5),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
