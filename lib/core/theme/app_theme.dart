@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Paleta y tema principal de VillaGuestRD — Selva & Oro.
 ///
@@ -37,6 +38,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: surfacePage,
+      textTheme: GoogleFonts.outfitTextTheme(),
 
       // ── ColorScheme ─────────────────────────────────────────────────
       colorScheme: const ColorScheme(

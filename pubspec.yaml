@@ -18,6 +18,7 @@ dependencies:
 
   # Estado
   provider: ^6.1.2
+  google_fonts: ^6.2.1
 
   # Utilidades
   intl: ^0.20.3                  # Formateo de fechas y monedas
