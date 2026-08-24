@@ -341,16 +341,22 @@ class _StatTile extends StatelessWidget {
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
                     color: color,
-                    height: 1.1,
+                    height: 1.0,
+                    letterSpacing: -0.5,
                   ),
                 ),
+                const SizedBox(height: 1),
                 Text(
                   label,
                   style: const TextStyle(
-                      fontSize: 11, color: Color(0xFF6B7A99)),
+                    fontSize: 11,
+                    color: Color(0xFF6B7A99),
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.2,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

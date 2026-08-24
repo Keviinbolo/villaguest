@@ -30,12 +30,21 @@ class GradientAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       actions: actions,
       automaticallyImplyLeading: automaticallyImplyLeading,
-      backgroundColor: AppTheme.teal,
+      backgroundColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 2,
-      shadowColor: AppTheme.teal.withValues(alpha: 0.4),
+      shadowColor: AppTheme.navy.withValues(alpha: 0.5),
       iconTheme: const IconThemeData(color: Colors.white),
       actionsIconTheme: const IconThemeData(color: Colors.white),
+      flexibleSpace: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppTheme.navy, AppTheme.teal],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+      ),
     );
   }
 }

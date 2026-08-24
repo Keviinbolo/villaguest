@@ -238,86 +238,106 @@ class _BookingCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: IntrinsicHeight(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // ── Color strip lateral ─────────────────────────────────
-              Container(width: 4, color: statusColor),
+              // ── Avatar con inicial ─────────────────────────────────
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: statusColor.withValues(alpha: 0.28),
+                    width: 1.5,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    booking.guestName.isNotEmpty
+                        ? booking.guestName[0].toUpperCase()
+                        : '?',
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                      height: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
 
               // ── Contenido ──────────────────────────────────────────
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Nombre + estado
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              booking.guestName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Nombre + estado
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            booking.guestName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              letterSpacing: -0.2,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 8),
-                          _StatusBadge(
-                              label: statusLabel, color: statusColor),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      // Fechas y noches
-                      Row(
-                        children: [
-                          const Icon(Icons.date_range_outlined,
-                              size: 13, color: Color(0xFF6B7A99)),
-                          const SizedBox(width: 4),
-                          Text(
+                        ),
+                        const SizedBox(width: 8),
+                        _StatusBadge(label: statusLabel, color: statusColor),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    // Fechas y noches
+                    Row(
+                      children: [
+                        const Icon(Icons.date_range_outlined,
+                            size: 13, color: Color(0xFF6B7A99)),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
                             '${formatDate(booking.checkIn)} → ${formatDate(booking.checkOut)}'
                             '  ·  $nights ${nights == 1 ? 'noche' : 'noches'}',
                             style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF6B7A99)),
+                                fontSize: 12, color: Color(0xFF6B7A99)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    // Balance pendiente
+                    if (balanceDue > 0 && booking.status != 'cancelled') ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.payments_outlined,
+                              size: 13, color: Color(0xFFE07B00)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Pendiente: RD\$ ${balanceDue.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFFE07B00),
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ],
                       ),
-                      // Balance pendiente
-                      if (balanceDue > 0 &&
-                          booking.status != 'cancelled') ...[
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.payments_outlined,
-                                size: 13,
-                                color: Color(0xFFE07B00)),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Pendiente por cobrar: RD\$ ${balanceDue.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFFE07B00),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ],
-                  ),
+                  ],
                 ),
               ),
 
               // ── Flecha ─────────────────────────────────────────────
-              const Padding(
-                padding: EdgeInsets.only(right: 10),
-                child: Icon(Icons.chevron_right,
-                    color: Color(0xFFBBC3D8)),
-              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.chevron_right, color: Color(0xFFBBC3D8), size: 20),
             ],
           ),
         ),
