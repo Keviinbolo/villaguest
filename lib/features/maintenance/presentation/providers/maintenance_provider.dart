@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:villaguest/core/services/firebase_service.dart';
 
 import '../../data/models/maintenance_ticket_model.dart';
 import '../../data/repositories/maintenance_repository.dart';
@@ -67,9 +68,9 @@ class MaintenanceProvider extends ChangeNotifier {
     required String priority,
     required String reportedBy,
     Uint8List? photoBytes,
-  }) {
+  }) async {
     assert(_villaId != null);
-    return _repository.createTicket(
+    final id = await _repository.createTicket(
       title: title,
       description: description,
       priority: priority,
@@ -77,6 +78,13 @@ class MaintenanceProvider extends ChangeNotifier {
       villaId: _villaId!,
       photoBytes: photoBytes,
     );
+    FirebaseService.instance.sendNotificationToVilla(
+      villaId: _villaId!,
+      title: 'Nueva avería: $title',
+      body: description.isNotEmpty ? description : 'Prioridad: $priority',
+      excludeUid: FirebaseService.instance.currentUser?.uid,
+    ).ignore();
+    return id;
   }
 
   Future<void> updateStatus({

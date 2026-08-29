@@ -1,8 +1,10 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/core/config/supabase_config.dart';
+import 'package:villaguest/core/services/notification_service.dart';
 import 'package:villaguest/core/theme/app_theme.dart';
 import 'package:villaguest/features/auth/presentation/screens/splash_screen.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
@@ -17,6 +19,8 @@ import 'features/auth/presentation/screens/auth_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Must be registered before runApp for background message handling.
+  FirebaseMessaging.onBackgroundMessage(onFirebaseBackgroundMessage);
   runApp(const MainApp());
 }
 
@@ -125,6 +129,7 @@ class MainApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             title: 'VillaGuestRD',
             theme: AppTheme.light,
+            navigatorKey: navigatorKey,
             home: const AuthGate(),
           ),
         );

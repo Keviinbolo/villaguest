@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:villaguest/core/services/firebase_service.dart';
 import 'package:villaguest/features/bookings/data/models/booking_model.dart';
 import 'package:villaguest/features/calendar/data/repositories/availability_repository.dart';
 
@@ -83,9 +84,15 @@ class BookingProvider extends ChangeNotifier {
     });
   }
 
-  Future<String> createBooking(BookingModel booking) {
+  Future<String> createBooking(BookingModel booking) async {
     assert(_villaId != null);
-    return _repository.createBooking(booking, _villaId!);
+    final id = await _repository.createBooking(booking, _villaId!);
+    _notify(
+      title: 'Nueva reserva',
+      body:
+          '${booking.guestName} · ${_fmtDate(booking.checkIn)} → ${_fmtDate(booking.checkOut)}',
+    );
+    return id;
   }
 
   Future<void> updateBooking(BookingModel booking) {
@@ -96,9 +103,32 @@ class BookingProvider extends ChangeNotifier {
   Future<void> updateStatus({
     required String bookingId,
     required String newStatus,
-  }) {
-    return _repository.updateStatus(bookingId: bookingId, newStatus: newStatus);
+  }) async {
+    await _repository.updateStatus(bookingId: bookingId, newStatus: newStatus);
+    const labels = {
+      'confirmed': 'Confirmada',
+      'cancelled': 'Cancelada',
+      'completed': 'Completada',
+    };
+    final label = labels[newStatus];
+    if (label != null) {
+      final guest =
+          _bookings.where((b) => b.id == bookingId).firstOrNull?.guestName ?? '';
+      _notify(title: 'Reserva $label', body: guest);
+    }
   }
+
+  void _notify({required String title, required String body}) {
+    if (_villaId == null) return;
+    FirebaseService.instance.sendNotificationToVilla(
+      villaId: _villaId!,
+      title: title,
+      body: body,
+      excludeUid: FirebaseService.instance.currentUser?.uid,
+    ).ignore();
+  }
+
+  static String _fmtDate(DateTime d) => '${d.day}/${d.month}';
 
   Future<void> deleteBooking(String bookingId) {
     return _repository.deleteBooking(bookingId);
