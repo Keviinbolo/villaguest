@@ -19,8 +19,18 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   static const _monthNames = [
-    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
-    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    'enero',
+    'febrero',
+    'marzo',
+    'abril',
+    'mayo',
+    'junio',
+    'julio',
+    'agosto',
+    'septiembre',
+    'octubre',
+    'noviembre',
+    'diciembre',
   ];
 
   void _openCreateBookingDialog(
@@ -43,11 +53,13 @@ class HomeScreen extends StatelessWidget {
         content: const Text('¿Seguro que quieres cerrar sesión?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Cancelar')),
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
           FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Cerrar sesión')),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Cerrar sesión'),
+          ),
         ],
       ),
     );
@@ -58,27 +70,41 @@ class HomeScreen extends StatelessWidget {
 
   void _navigate(BuildContext context, Widget screen) {
     Navigator.of(context).pop();
-    Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => screen));
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
   }
 
   @override
   Widget build(BuildContext context) {
     final bookingProvider = context.watch<BookingProvider>();
-    final pendingCount =
-        bookingProvider.bookings.where((b) => b.status == 'pending').length;
+    final pendingCount = bookingProvider.bookings
+        .where((b) => b.status == 'pending')
+        .length;
     final activeCount = bookingProvider.activeBookings.length;
-    final logoUrl =
-        context.watch<VillaSettingsProvider>().settings?.logoUrl;
+    final logoUrl = context.watch<VillaSettingsProvider>().settings?.logoUrl;
 
     return Scaffold(
-      appBar: const GradientAppBar(title: 'VillaGuestRD'),
-      drawer: _buildDrawer(context,
-          pendingCount: pendingCount, logoUrl: logoUrl),
+      appBar: GradientAppBar(
+        title: 'VillaGuestRD',
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            tooltip: 'Abrir menú',
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+      ),
+      drawer: _buildDrawer(
+        context,
+        pendingCount: pendingCount,
+        logoUrl: logoUrl,
+      ),
       body: Column(
         children: [
-          _buildStatsBar(context,
-              pendingCount: pendingCount, activeCount: activeCount),
+          _buildStatsBar(
+            context,
+            pendingCount: pendingCount,
+            activeCount: activeCount,
+          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -86,8 +112,7 @@ class HomeScreen extends StatelessWidget {
                 onRangeSelected: (checkIn, checkOut) =>
                     _openCreateBookingDialog(context, checkIn, checkOut),
                 onBookedDayTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                      builder: (_) => const BookingsListScreen()),
+                  MaterialPageRoute(builder: (_) => const BookingsListScreen()),
                 ),
               ),
             ),
@@ -104,8 +129,7 @@ class HomeScreen extends StatelessWidget {
     required int activeCount,
   }) {
     final now = DateTime.now();
-    final dateLabel =
-        '${now.day} de ${_monthNames[now.month - 1]} ${now.year}';
+    final dateLabel = '${now.day} de ${_monthNames[now.month - 1]} ${now.year}';
 
     return Container(
       width: double.infinity,
@@ -120,13 +144,15 @@ class HomeScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.calendar_today_outlined,
-                  size: 13, color: Color(0xFF6B7A99)),
+              const Icon(
+                Icons.calendar_today_outlined,
+                size: 13,
+                color: Color(0xFF6B7A99),
+              ),
               const SizedBox(width: 5),
               Text(
                 dateLabel,
-                style: const TextStyle(
-                    color: Color(0xFF6B7A99), fontSize: 12),
+                style: const TextStyle(color: Color(0xFF6B7A99), fontSize: 12),
               ),
             ],
           ),
@@ -191,18 +217,24 @@ class HomeScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: Colors.white.withValues(alpha: 0.12),
                     border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        width: 2),
+                      color: Colors.white.withValues(alpha: 0.4),
+                      width: 2,
+                    ),
                   ),
                   child: ClipOval(
                     child: logoUrl != null
-                        ? Image.network(logoUrl,
+                        ? Image.network(
+                            logoUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (_, _, _) => Image.asset(
-                                'assets/icon/icon.png',
-                                fit: BoxFit.cover))
-                        : Image.asset('assets/icon/icon.png',
-                            fit: BoxFit.cover),
+                              'assets/icon/icon.png',
+                              fit: BoxFit.cover,
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/icon/icon.png',
+                            fit: BoxFit.cover,
+                          ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -217,13 +249,14 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   email,
-                  style: const TextStyle(
-                      color: Colors.white60, fontSize: 12),
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
                 ),
                 const SizedBox(height: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 2),
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.lime,
                     borderRadius: BorderRadius.circular(10),
@@ -268,8 +301,7 @@ class HomeScreen extends StatelessWidget {
           _DrawerItem(
             icon: Icons.build_outlined,
             label: 'Mantenimiento',
-            onTap: () =>
-                _navigate(context, const MaintenanceListScreen()),
+            onTap: () => _navigate(context, const MaintenanceListScreen()),
           ),
 
           const Padding(
@@ -386,8 +418,9 @@ class _DrawerItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        isDestructive ? Colors.red : Theme.of(context).colorScheme.onSurface;
+    final color = isDestructive
+        ? Colors.red
+        : Theme.of(context).colorScheme.onSurface;
 
     return ListTile(
       leading: Badge(

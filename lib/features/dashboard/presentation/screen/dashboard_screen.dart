@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:villaguest/core/services/invoice_service.dart';
 import 'package:villaguest/core/theme/app_theme.dart';
 import 'package:villaguest/core/theme/gradient_app_bar.dart';
+import 'package:villaguest/features/bookings/presentation/screen/invoice_preview_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
+import 'package:pdf/pdf.dart';
 
 import '../../../bookings/data/models/booking_model.dart';
 
@@ -108,7 +111,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }).toList();
 
     return Scaffold(
-      appBar: const GradientAppBar(title: 'Dashboard'),
+      appBar: GradientAppBar(
+        title: 'Dashboard',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Exportar reporte $_selectedYear',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => InvoicePreviewScreen(
+                  title: 'Reporte $_selectedYear',
+                  filename: 'reporte_$_selectedYear.pdf',
+                  buildBytes: (PdfPageFormat format) =>
+                      InvoiceService.buildYearReportBytes(
+                    format,
+                    _selectedYear,
+                    activeBookings,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

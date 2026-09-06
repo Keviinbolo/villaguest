@@ -40,8 +40,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _displayNameController.text = settings.displayName;
     _phoneController.text = settings.contactPhone ?? '';
     _emailController.text = settings.contactEmail ?? '';
-    _priceController.text =
-        settings.pricePerNight != null ? settings.pricePerNight!.toStringAsFixed(0) : '';
+    _priceController.text = settings.pricePerNight != null
+        ? settings.pricePerNight!.toStringAsFixed(0)
+        : '';
   }
 
   Future<void> _pickLogo() async {
@@ -58,9 +59,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await context.read<VillaSettingsProvider>().uploadLogo(bytes);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Logo actualizado.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Logo actualizado.')));
     }
   }
 
@@ -110,13 +110,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         pricePerNight: double.tryParse(_priceController.text.trim()),
       );
       await provider.updateSettings(updated);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Ajustes guardados.')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('Ajustes guardados.')));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('No se pudieron guardar: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('No se pudieron guardar: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -130,25 +126,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await FirebaseService.instance.sendPasswordResetEmail(email);
       messenger.showSnackBar(
-        SnackBar(
-          content: Text('Se envió un correo de restablecimiento a $email.'),
-        ),
+        SnackBar(content: Text('Correo enviado a $email.')),
       );
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<VillaSettingsProvider>();
+    final auth = context.watch<AuthProvider>();
     final settings = provider.settings;
 
     if (settings != null) _initControllers(settings);
 
     return Scaffold(
+      backgroundColor: AppTheme.surfacePage,
       appBar: GradientAppBar(
         title: 'Ajustes',
         actions: [
@@ -160,9 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
+                          strokeWidth: 2, color: Colors.white),
                     ),
                   )
                 : IconButton(
@@ -174,177 +166,295 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              children: [
-                _buildLogoHeader(context, provider, settings),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _sectionLabel(context, 'Tu villa'),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _displayNameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nombre visible',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.villa_outlined),
-                          ),
-                          textCapitalization: TextCapitalization.words,
-                          validator: (v) =>
-                              (v == null || v.trim().isEmpty) ? 'Requerido' : null,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _phoneController,
-                          decoration: const InputDecoration(
-                            labelText: 'Teléfono de contacto',
-                            hintText: '+1 809 000 0000',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.phone_outlined),
-                          ),
-                          keyboardType: TextInputType.phone,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _emailController,
-                          decoration: const InputDecoration(
-                            labelText: 'Correo de contacto',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.email_outlined),
-                          ),
-                          keyboardType: TextInputType.emailAddress,
-                        ),
-                        const SizedBox(height: 24),
-                        _sectionLabel(context, 'Precios'),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _priceController,
-                          decoration: const InputDecoration(
-                            labelText: 'Precio por noche (RD\$)',
-                            hintText: 'Ej. 5000',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.nights_stay_outlined),
-                          ),
-                          keyboardType:
-                              const TextInputType.numberWithOptions(decimal: true),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) return null;
-                            if (double.tryParse(v.trim()) == null) {
-                              return 'Ingresa un número válido';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 32),
-                        _sectionLabel(context, 'Cuenta'),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.lock_reset_outlined),
-                            label: const Text('Cambiar contraseña'),
-                            onPressed: _sendPasswordReset,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                      ],
-                    ),
+          : Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 32),
+                children: [
+                  // ── Hero: logo + nombre de villa ────────────────────────
+                  _buildHeroHeader(provider, settings),
+                  const SizedBox(height: 20),
+
+                  // ── Tu villa ────────────────────────────────────────────
+                  _buildSectionCard(
+                    label: 'Tu villa',
+                    children: [
+                      _field(
+                        controller: _displayNameController,
+                        label: 'Nombre visible',
+                        icon: Icons.villa_outlined,
+                        capitalization: TextCapitalization.words,
+                        validator: (v) =>
+                            (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      _field(
+                        controller: _phoneController,
+                        label: 'Teléfono de contacto',
+                        hint: '+1 809 000 0000',
+                        icon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 12),
+                      _field(
+                        controller: _emailController,
+                        label: 'Correo de contacto',
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                    ],
                   ),
-                ),
-              ],
+
+                  // ── Precios ─────────────────────────────────────────────
+                  _buildSectionCard(
+                    label: 'Precios',
+                    children: [
+                      _field(
+                        controller: _priceController,
+                        label: 'Precio por noche (RD\$)',
+                        hint: 'Ej. 5000',
+                        icon: Icons.nights_stay_outlined,
+                        keyboardType:
+                            const TextInputType.numberWithOptions(decimal: true),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          if (double.tryParse(v.trim()) == null) {
+                            return 'Ingresa un número válido';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+
+                  // ── Cuenta ──────────────────────────────────────────────
+                  _buildSectionCard(
+                    label: 'Cuenta',
+                    children: [
+                      // Email info row (read-only)
+                      _infoRow(
+                        icon: Icons.account_circle_outlined,
+                        label: 'Usuario',
+                        value: auth.user?.email ?? '—',
+                      ),
+                      const Divider(height: 20),
+                      _infoRow(
+                        icon: Icons.villa_outlined,
+                        label: 'Villa',
+                        value: auth.villaId ?? '—',
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.lock_reset_outlined),
+                          label: const Text('Cambiar contraseña'),
+                          onPressed: _sendPasswordReset,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
     );
   }
 
-  Widget _buildLogoHeader(
-    BuildContext context,
-    VillaSettingsProvider provider,
-    VillaSettingsModel? settings,
-  ) {
+  // ── Hero header ──────────────────────────────────────────────────────────
+
+  Widget _buildHeroHeader(
+      VillaSettingsProvider provider, VillaSettingsModel? settings) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      color: AppTheme.teal,
-      child: Column(
+      padding: const EdgeInsets.fromLTRB(24, 36, 24, 32),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.navy, AppTheme.teal],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Stack(
         children: [
-          GestureDetector(
-            onTap: provider.isUploadingLogo ? null : _pickLogo,
-            child: Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withValues(alpha: 0.15),
-                    border: Border.all(color: Colors.white54, width: 2),
-                  ),
-                  child: ClipOval(
-                    child: provider.isUploadingLogo
-                        ? const Center(
-                            child: CircularProgressIndicator(color: Colors.white),
-                          )
-                        : settings?.logoUrl != null
-                            ? Image.network(
-                                settings!.logoUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => Image.asset(
-                                  'assets/icon/icon.png',
-                                  fit: BoxFit.cover,
-                                ),
+          // Decorative circles
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.05),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 20,
+            bottom: -10,
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.lime.withValues(alpha: 0.10),
+              ),
+            ),
+          ),
+
+          Column(
+            children: [
+              // Logo
+              GestureDetector(
+                onTap: provider.isUploadingLogo ? null : _pickLogo,
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.12),
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.5),
+                            width: 2),
+                      ),
+                      child: ClipOval(
+                        child: provider.isUploadingLogo
+                            ? const Center(
+                                child: CircularProgressIndicator(
+                                    color: Colors.white),
                               )
-                            : Image.asset(
-                                'assets/icon/icon.png',
-                                fit: BoxFit.cover,
-                              ),
-                  ),
+                            : settings?.logoUrl != null
+                                ? Image.network(
+                                    settings!.logoUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) => Image.asset(
+                                      'assets/icon/icon.png',
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Image.asset('assets/icon/icon.png',
+                                    fit: BoxFit.cover),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.lime,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.camera_alt,
+                          size: 14, color: AppTheme.navy),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.lime,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(Icons.camera_alt, size: 14, color: AppTheme.navy),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                settings?.displayName ?? '',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            settings?.displayName ?? '',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Toca el logo para cambiarlo',
-            style: TextStyle(color: Colors.white60, fontSize: 12),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Toca el logo para cambiarlo',
+                style: TextStyle(color: Colors.white60, fontSize: 12),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _sectionLabel(BuildContext context, String text) {
-    return Text(
-      text.toUpperCase(),
-      style: TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        color: Theme.of(context).colorScheme.primary,
-        letterSpacing: 1.2,
+  // ── Section card ─────────────────────────────────────────────────────────
+
+  Widget _buildSectionCard({
+    required String label,
+    required List<Widget> children,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.teal,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 14),
+              ...children,
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  // ── Field helper ─────────────────────────────────────────────────────────
+
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    String? hint,
+    TextInputType? keyboardType,
+    TextCapitalization capitalization = TextCapitalization.none,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon),
+      ),
+      keyboardType: keyboardType,
+      textCapitalization: capitalization,
+      validator: validator,
+    );
+  }
+
+  // ── Info row (read-only) ─────────────────────────────────────────────────
+
+  Widget _infoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: const Color(0xFF6B7A99)),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
+        ),
+        const Spacer(),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.navy,
+          ),
+        ),
+      ],
     );
   }
 }
