@@ -5,6 +5,8 @@ import 'package:villaguest/features/bookings/presentation/booking_provider.dart'
 
 import '../../data/models/booking_model.dart';
 
+// ignore: unused_import — BookingModel.sourceLabels usado en el dropdown
+
 /// Diálogo para editar una reserva existente.
 /// Permite cambiar datos del huésped, fechas y precios.
 /// Las fechas se seleccionan con el date picker nativo.
@@ -25,9 +27,11 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
   late final TextEditingController _phoneController;
   late final TextEditingController _totalPriceController;
   late final TextEditingController _depositController;
+  late final TextEditingController _notesController;
 
   late DateTime _checkIn;
   late DateTime _checkOut;
+  String? _source;
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -53,6 +57,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     super.initState();
     _checkIn = widget.booking.checkIn;
     _checkOut = widget.booking.checkOut;
+    _source = widget.booking.source;
     _nameController = TextEditingController(text: widget.booking.guestName);
     _emailController = TextEditingController(text: widget.booking.guestEmail);
     _phoneController = TextEditingController(text: widget.booking.guestPhone);
@@ -62,6 +67,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     _depositController = TextEditingController(
       text: widget.booking.depositPaid.toStringAsFixed(2),
     );
+    _notesController = TextEditingController(text: widget.booking.notes ?? '');
   }
 
   @override
@@ -71,6 +77,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     _phoneController.dispose();
     _totalPriceController.dispose();
     _depositController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -131,6 +138,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
 
     setState(() => _isSubmitting = true);
 
+    final notes = _notesController.text.trim();
     final updated = widget.booking.copyWith(
       guestName: _nameController.text.trim(),
       guestEmail: _emailController.text.trim(),
@@ -139,6 +147,8 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
       checkOut: _checkOut,
       totalPrice: totalPrice,
       depositPaid: depositPaid,
+      source: _source,
+      notes: notes.isEmpty ? null : notes,
     );
 
     final navigator = Navigator.of(context);
@@ -231,6 +241,27 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
                 keyboardType: TextInputType.phone,
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _source,
+                decoration: const InputDecoration(labelText: 'Canal de reserva'),
+                hint: const Text('Seleccionar canal'),
+                items: BookingModel.sourceLabels.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .toList(),
+                onChanged: (v) => setState(() => _source = v),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notas internas',
+                  hintText: 'Preferencias, observaciones, etc.',
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+                textCapitalization: TextCapitalization.sentences,
               ),
               const SizedBox(height: 12),
 

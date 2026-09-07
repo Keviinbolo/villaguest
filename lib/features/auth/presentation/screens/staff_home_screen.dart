@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/core/theme/app_theme.dart';
 import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.dart';
+import 'package:villaguest/features/cleaning/providers/cleaning_provider.dart';
+import 'package:villaguest/features/maintenance/presentation/providers/maintenance_provider.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../maintenance/presentation/screens/maintenance_list_screen.dart';
@@ -36,6 +38,8 @@ class StaffHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final villa = context.read<AuthProvider>().villaId ?? 'Equipo';
+    final pendingClean = context.watch<CleaningProvider>().pendingCount;
+    final openTickets = context.watch<MaintenanceProvider>().openTickets.length;
 
     return Scaffold(
       backgroundColor: AppTheme.surfacePage,
@@ -55,6 +59,7 @@ class StaffHomeScreen extends StatelessWidget {
                   subtitle: 'Checklists de salida y subida de fotos',
                   accentColor: AppTheme.teal,
                   iconBg: AppTheme.sage.withValues(alpha: 0.35),
+                  badgeCount: pendingClean,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                         builder: (_) => const CleaningListScreen()),
@@ -67,6 +72,7 @@ class StaffHomeScreen extends StatelessWidget {
                   subtitle: 'Reportar averías y consultar el estado',
                   accentColor: AppTheme.lime,
                   iconBg: AppTheme.cyan.withValues(alpha: 0.55),
+                  badgeCount: openTickets,
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                         builder: (_) => const MaintenanceListScreen()),
@@ -203,6 +209,7 @@ class _ActionCard extends StatelessWidget {
     required this.accentColor,
     required this.iconBg,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
@@ -211,6 +218,7 @@ class _ActionCard extends StatelessWidget {
   final Color accentColor;
   final Color iconBg;
   final VoidCallback onTap;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -262,6 +270,24 @@ class _ActionCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (badgeCount > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '$badgeCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Icon(Icons.arrow_forward_ios_rounded,
                   size: 14, color: accentColor.withValues(alpha: 0.6)),
             ],

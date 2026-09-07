@@ -35,6 +35,7 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
   bool _priceInitialized = false;
   double? _pricePerNight;
   String? _errorMessage;
+  String? _source;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
@@ -100,6 +101,7 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
       depositPaid: depositPaid,
       status: 'pending',
       createdAt: DateTime.now(),
+      source: _source,
     );
 
     final navigator = Navigator.of(context);
@@ -211,6 +213,19 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
                 keyboardType: TextInputType.phone,
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _source,
+                decoration: const InputDecoration(
+                  labelText: 'Canal de reserva',
+                  border: OutlineInputBorder(),
+                ),
+                hint: const Text('Seleccionar canal'),
+                items: BookingModel.sourceLabels.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .toList(),
+                onChanged: (v) => setState(() => _source = v),
               ),
               const SizedBox(height: 16),
 

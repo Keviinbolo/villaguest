@@ -240,8 +240,25 @@ class BookingDetailScreen extends StatelessWidget {
               _InfoRow('Email', booking.guestEmail),
               const Divider(height: 16),
               _InfoRow('Teléfono', booking.guestPhone),
+              if (booking.source != null) ...[
+                const Divider(height: 16),
+                _InfoRow('Canal', booking.sourceLabel),
+              ],
             ],
           ),
+
+          // ── Notas internas ────────────────────────────────────────────
+          if (booking.notes != null && booking.notes!.isNotEmpty)
+            _SectionCard(
+              label: 'Notas internas',
+              context: context,
+              children: [
+                Text(
+                  booking.notes!,
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF3D4A5C), height: 1.5),
+                ),
+              ],
+            ),
 
           // ── Pago ───────────────────────────────────────────────────────
           _SectionCard(

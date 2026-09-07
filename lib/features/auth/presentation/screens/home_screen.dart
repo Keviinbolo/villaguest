@@ -8,6 +8,8 @@ import 'package:villaguest/features/cleaning/presentation/cleaning_list_screen.d
 import 'package:villaguest/features/dashboard/presentation/screen/dashboard_screen.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../bookings/data/models/booking_model.dart';
+import '../../../bookings/presentation/screen/booking_detail_screen.dart';
 import '../../../bookings/presentation/widgets/create_booking_dialog.dart';
 import '../../../calendar/presentation/widgets/booking_calendar.dart';
 import '../../../guests/presentation/screens/guest_list_screen.dart';
@@ -108,17 +110,166 @@ class HomeScreen extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-              child: BookingCalendar(
-                onRangeSelected: (checkIn, checkOut) =>
-                    _openCreateBookingDialog(context, checkIn, checkOut),
-                onBookedDayTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const BookingsListScreen()),
-                ),
+              child: Column(
+                children: [
+                  _buildUpcomingSection(context, bookingProvider.activeBookings),
+                  BookingCalendar(
+                    onRangeSelected: (checkIn, checkOut) =>
+                        _openCreateBookingDialog(context, checkIn, checkOut),
+                    onBookedDayTap: (day) => _handleBookedDayTap(context, bookingProvider, day),
+                  ),
+                ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  // ── Booked day tap ────────────────────────────────────────────────────
+  void _handleBookedDayTap(
+    BuildContext context,
+    BookingProvider bookingProvider,
+    DateTime day,
+  ) {
+    final date = DateTime(day.year, day.month, day.day);
+    final hits = bookingProvider.activeBookings.where((b) {
+      final ci = DateTime(b.checkIn.year, b.checkIn.month, b.checkIn.day);
+      final co = DateTime(b.checkOut.year, b.checkOut.month, b.checkOut.day);
+      return !date.isBefore(ci) && date.isBefore(co);
+    }).toList();
+
+    if (hits.isEmpty) return;
+
+    if (hits.length == 1) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => BookingDetailScreen(bookingId: hits.first.id)),
+      );
+      return;
+    }
+
+    // Varias reservas ese día → bottom sheet selector
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Text(
+                'Reservas el ${day.day}/${day.month}',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              ),
+            ),
+            ...hits.map((b) => ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppTheme.sage.withValues(alpha: 0.35),
+                    child: Text(
+                      b.guestName[0].toUpperCase(),
+                      style: const TextStyle(color: AppTheme.teal, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  title: Text(b.guestName),
+                  subtitle: Text('${b.checkIn.day}/${b.checkIn.month} → ${b.checkOut.day}/${b.checkOut.month}'),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => BookingDetailScreen(bookingId: b.id)),
+                    );
+                  },
+                )),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Upcoming (hoy + próximos 6 días) ──────────────────────────────────
+  Widget _buildUpcomingSection(BuildContext context, List<BookingModel> active) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Reúne check-ins y check-outs en los próximos 7 días
+    final events = <({DateTime date, bool isCheckIn, BookingModel booking})>[];
+    for (final b in active) {
+      final ci = DateTime(b.checkIn.year, b.checkIn.month, b.checkIn.day);
+      final co = DateTime(b.checkOut.year, b.checkOut.month, b.checkOut.day);
+      if (!ci.isBefore(today) && ci.isBefore(today.add(const Duration(days: 7)))) {
+        events.add((date: ci, isCheckIn: true, booking: b));
+      }
+      if (!co.isBefore(today) && co.isBefore(today.add(const Duration(days: 7)))) {
+        events.add((date: co, isCheckIn: false, booking: b));
+      }
+    }
+
+    if (events.isEmpty) return const SizedBox.shrink();
+
+    events.sort((a, b) => a.date.compareTo(b.date));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Próximos 7 días',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: AppTheme.navy,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 8),
+        ...events.map((e) {
+          final isToday = e.date == today;
+          final diff = e.date.difference(today).inDays;
+          final dayLabel = isToday
+              ? 'Hoy'
+              : diff == 1
+                  ? 'Mañana'
+                  : '${e.date.day}/${e.date.month}';
+          final color = e.isCheckIn ? AppTheme.teal : AppTheme.lime;
+          final icon = e.isCheckIn ? Icons.login_outlined : Icons.logout_outlined;
+          final typeLabel = e.isCheckIn ? 'Check-in' : 'Check-out';
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color.withValues(alpha: 0.20)),
+            ),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 16),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    e.booking.guestName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppTheme.navy,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  '$typeLabel · $dayLabel',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+        const SizedBox(height: 16),
+      ],
     );
   }
 

@@ -25,7 +25,7 @@ class BookingCalendar extends StatefulWidget {
   const BookingCalendar({super.key, this.onRangeSelected, this.onBookedDayTap});
 
   final void Function(DateTime checkIn, DateTime checkOut)? onRangeSelected;
-  final VoidCallback? onBookedDayTap;
+  final void Function(DateTime day)? onBookedDayTap;
 
   @override
   State<BookingCalendar> createState() => _BookingCalendarState();
@@ -274,7 +274,7 @@ class _BookingCalendarState extends State<BookingCalendar> {
 
     VoidCallback? onTap;
     if (isBooked && !isPast && widget.onBookedDayTap != null) {
-      onTap = widget.onBookedDayTap;
+      onTap = () => widget.onBookedDayTap!(day);
     } else if (!isDisabled) {
       onTap = () => _handleDayTap(day, bookingProvider);
     }

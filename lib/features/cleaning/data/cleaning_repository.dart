@@ -103,6 +103,22 @@ class CleaningRepository {
     );
   }
 
+  Future<void> completeTaskWithoutPhoto({
+    required String checklistId,
+    required String taskId,
+  }) {
+    return _firebase.updateDocument(
+      collectionPath: _collectionPath,
+      docId: checklistId,
+      data: {
+        'tasks.$taskId.isCompleted': true,
+        'tasks.$taskId.photoUrl': null,
+        'tasks.$taskId.completedAt': DateTime.now().toIso8601String(),
+        'status': 'in_progress',
+      },
+    );
+  }
+
   Future<void> resetTask({
     required String checklistId,
     required String taskId,
