@@ -8,9 +8,12 @@ class BookingModel {
   final DateTime checkIn;
   final DateTime checkOut;
   final double totalPrice;
-  final double depositPaid; // señal
+  final double depositPaid;
   final String status; // 'pending', 'confirmed', 'cancelled', 'completed'
   final DateTime createdAt;
+  final String? source; // 'direct', 'airbnb', 'booking_com', 'vrbo', 'other'
+  final String? notes;
+  final int? guestCount;
 
   BookingModel({
     required this.id,
@@ -23,7 +26,20 @@ class BookingModel {
     required this.depositPaid,
     required this.status,
     required this.createdAt,
+    this.source,
+    this.notes,
+    this.guestCount,
   });
+
+  static const Map<String, String> sourceLabels = {
+    'direct':      'Directo',
+    'airbnb':      'Airbnb',
+    'booking_com': 'Booking.com',
+    'vrbo':        'VRBO',
+    'other':       'Otro',
+  };
+
+  String get sourceLabel => sourceLabels[source] ?? source ?? '—';
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
@@ -37,6 +53,9 @@ class BookingModel {
       depositPaid: (json['depositPaid'] as num).toDouble(),
       status: json['status'] as String,
       createdAt: parseFlexibleDate(json['createdAt']),
+      source: json['source'] as String?,
+      notes: json['notes'] as String?,
+      guestCount: (json['guestCount'] as num?)?.toInt(),
     );
   }
 
@@ -52,6 +71,9 @@ class BookingModel {
       'depositPaid': depositPaid,
       'status': status,
       'createdAt': createdAt.toIso8601String(),
+      'source': source,
+      'notes': notes,
+      'guestCount': guestCount,
     };
   }
 
@@ -66,6 +88,9 @@ class BookingModel {
     double? depositPaid,
     String? status,
     DateTime? createdAt,
+    Object? source = _sentinel,
+    Object? notes = _sentinel,
+    Object? guestCount = _sentinel,
   }) {
     return BookingModel(
       id: id ?? this.id,
@@ -78,6 +103,11 @@ class BookingModel {
       depositPaid: depositPaid ?? this.depositPaid,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      source: source == _sentinel ? this.source : source as String?,
+      notes: notes == _sentinel ? this.notes : notes as String?,
+      guestCount: guestCount == _sentinel ? this.guestCount : guestCount as int?,
     );
   }
 }
+
+const _sentinel = Object();

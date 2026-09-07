@@ -40,7 +40,9 @@ class CleaningRepository {
   }) async {
     final existing = await _firebase.getCollection(
       collectionPath: _collectionPath,
-      queryBuilder: (q) => q.where('bookingId', isEqualTo: bookingId),
+      queryBuilder: (q) => q
+          .where('villaId', isEqualTo: villaId)
+          .where('bookingId', isEqualTo: bookingId),
     );
 
     if (existing.docs.isNotEmpty) {
@@ -95,6 +97,22 @@ class CleaningRepository {
       data: {
         'tasks.$taskId.isCompleted': true,
         'tasks.$taskId.photoUrl': photoUrl,
+        'tasks.$taskId.completedAt': DateTime.now().toIso8601String(),
+        'status': 'in_progress',
+      },
+    );
+  }
+
+  Future<void> completeTaskWithoutPhoto({
+    required String checklistId,
+    required String taskId,
+  }) {
+    return _firebase.updateDocument(
+      collectionPath: _collectionPath,
+      docId: checklistId,
+      data: {
+        'tasks.$taskId.isCompleted': true,
+        'tasks.$taskId.photoUrl': null,
         'tasks.$taskId.completedAt': DateTime.now().toIso8601String(),
         'status': 'in_progress',
       },

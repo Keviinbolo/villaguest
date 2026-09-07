@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
+import 'package:villaguest/features/settings/presentation/providers/villa_settings_provider.dart';
 
 import '../../data/models/booking_model.dart';
 
@@ -25,19 +26,39 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
   late final TextEditingController _phoneController;
   late final TextEditingController _totalPriceController;
   late final TextEditingController _depositController;
+  late final TextEditingController _notesController;
 
   late DateTime _checkIn;
   late DateTime _checkOut;
+  String? _source;
+  late int _guestCount;
 
   bool _isSubmitting = false;
+  String? _errorMessage;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  static String _friendlyError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('permission-denied')) {
+      return 'Sin permisos para modificar reservas. Contacta al administrador.';
+    }
+    if (msg.contains('unavailable') || msg.contains('network')) {
+      return 'Sin conexión. Verifica tu internet e intenta de nuevo.';
+    }
+    if (msg.contains('chocan') || msg.contains('disponibles')) {
+      return 'Las nuevas fechas chocan con otra reserva existente.';
+    }
+    return 'No se pudo actualizar la reserva. Intenta de nuevo.';
+  }
 
   @override
   void initState() {
     super.initState();
     _checkIn = widget.booking.checkIn;
     _checkOut = widget.booking.checkOut;
+    _source = widget.booking.source;
+    _guestCount = widget.booking.guestCount ?? 2;
     _nameController = TextEditingController(text: widget.booking.guestName);
     _emailController = TextEditingController(text: widget.booking.guestEmail);
     _phoneController = TextEditingController(text: widget.booking.guestPhone);
@@ -47,6 +68,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     _depositController = TextEditingController(
       text: widget.booking.depositPaid.toStringAsFixed(2),
     );
+    _notesController = TextEditingController(text: widget.booking.notes ?? '');
   }
 
   @override
@@ -56,10 +78,20 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     _phoneController.dispose();
     _totalPriceController.dispose();
     _depositController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
   int get _nights => _checkOut.difference(_checkIn).inDays;
+
+  void _recalcPrice() {
+    final pricePerNight =
+        context.read<VillaSettingsProvider>().settings?.pricePerNight;
+    if (pricePerNight != null && pricePerNight > 0) {
+      _totalPriceController.text =
+          (pricePerNight * _nights).toStringAsFixed(0);
+    }
+  }
 
   Future<void> _pickCheckIn() async {
     final picked = await showDatePicker(
@@ -73,11 +105,11 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
 
     setState(() {
       _checkIn = picked;
-      // Si el nuevo check-in es igual o posterior al check-out, lo ajustamos.
       if (!_checkOut.isAfter(_checkIn)) {
         _checkOut = _checkIn.add(const Duration(days: 1));
       }
     });
+    _recalcPrice();
   }
 
   Future<void> _pickCheckOut() async {
@@ -90,6 +122,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     );
     if (picked == null) return;
     setState(() => _checkOut = picked);
+    _recalcPrice();
   }
 
   String? _validatePositiveNumber(String? value) {
@@ -101,20 +134,22 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
   }
 
   Future<void> _submit() async {
+    setState(() => _errorMessage = null);
+
     if (!_formKey.currentState!.validate()) return;
 
     final totalPrice = double.parse(_totalPriceController.text.trim());
     final depositPaid = double.parse(_depositController.text.trim());
 
     if (depositPaid > totalPrice) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La señal no puede ser mayor al precio total.')),
-      );
+      setState(() =>
+          _errorMessage = 'La señal no puede superar el precio total (RD\$ ${totalPrice.toStringAsFixed(0)}).');
       return;
     }
 
     setState(() => _isSubmitting = true);
 
+    final notes = _notesController.text.trim();
     final updated = widget.booking.copyWith(
       guestName: _nameController.text.trim(),
       guestEmail: _emailController.text.trim(),
@@ -123,6 +158,9 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
       checkOut: _checkOut,
       totalPrice: totalPrice,
       depositPaid: depositPaid,
+      source: _source,
+      notes: notes.isEmpty ? null : notes,
+      guestCount: _guestCount,
     );
 
     final navigator = Navigator.of(context);
@@ -134,10 +172,12 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
       navigator.pop();
       messenger.showSnackBar(const SnackBar(content: Text('Reserva actualizada.')));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('No se pudo actualizar: $e')),
-      );
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _errorMessage = _friendlyError(e);
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
@@ -146,6 +186,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       title: const Text('Editar reserva'),
       content: SingleChildScrollView(
         child: Form(
@@ -213,6 +254,52 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Número de huéspedes',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: _guestCount > 1
+                        ? () => setState(() => _guestCount--)
+                        : null,
+                  ),
+                  Text(
+                    '$_guestCount',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setState(() => _guestCount++),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: _source,
+                decoration: const InputDecoration(labelText: 'Canal de reserva'),
+                hint: const Text('Seleccionar canal'),
+                items: BookingModel.sourceLabels.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .toList(),
+                onChanged: (v) => setState(() => _source = v),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _notesController,
+                decoration: const InputDecoration(
+                  labelText: 'Notas internas',
+                  hintText: 'Preferencias, observaciones, etc.',
+                  alignLabelWithHint: true,
+                ),
+                maxLines: 3,
+                textCapitalization: TextCapitalization.sentences,
+              ),
               const SizedBox(height: 12),
 
               // ── Precios ─────────────────────────────────────────────
@@ -221,7 +308,10 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _totalPriceController,
-                      decoration: const InputDecoration(labelText: 'Precio total (RD\$)'),
+                      decoration: const InputDecoration(
+                        labelText: 'Precio total (RD\$)',
+                        border: OutlineInputBorder(),
+                      ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       validator: _validatePositiveNumber,
                     ),
@@ -230,13 +320,45 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _depositController,
-                      decoration: const InputDecoration(labelText: 'Señal (RD\$)'),
+                      decoration: const InputDecoration(
+                        labelText: 'Señal (RD\$)',
+                        border: OutlineInputBorder(),
+                      ),
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       validator: _validatePositiveNumber,
                     ),
                   ),
                 ],
               ),
+
+              // ── Error inline ─────────────────────────────────────────
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.error_outline,
+                          color: colorScheme.error, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: colorScheme.onErrorContainer,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

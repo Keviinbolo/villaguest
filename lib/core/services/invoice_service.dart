@@ -364,6 +364,169 @@ class InvoiceService {
     );
   }
 
+  // ─── Reporte anual del Dashboard ─────────────────────────────────────────
+
+  static Future<Uint8List> buildYearReportBytes(
+    PdfPageFormat format,
+    int year,
+    List<BookingModel> allBookings,
+  ) async {
+    final theme = await _theme();
+    final doc = pw.Document(theme: theme);
+    doc.addPage(_yearReportPage(year, allBookings, format));
+    return doc.save();
+  }
+
+  static pw.Page _yearReportPage(
+    int year,
+    List<BookingModel> allBookings,
+    PdfPageFormat format,
+  ) {
+    // Filter active (non-cancelled) bookings that start in the year
+    final bookings = allBookings
+        .where((b) => b.status != 'cancelled' && b.checkIn.year == year)
+        .toList()
+      ..sort((a, b) => a.checkIn.compareTo(b.checkIn));
+
+    // Compute stats
+    final periodStart = DateTime(year, 1, 1);
+    final periodEnd = DateTime(year + 1, 1, 1);
+    final totalNights = periodEnd.difference(periodStart).inDays;
+    var occupiedNights = 0;
+    var totalRevenue = 0.0;
+    var totalCollected = 0.0;
+
+    for (final b in bookings) {
+      totalRevenue += b.totalPrice;
+      totalCollected += b.depositPaid;
+      final overlapStart = b.checkIn.isAfter(periodStart) ? b.checkIn : periodStart;
+      final overlapEnd = b.checkOut.isBefore(periodEnd) ? b.checkOut : periodEnd;
+      if (overlapEnd.isAfter(overlapStart)) {
+        occupiedNights += overlapEnd.difference(overlapStart).inDays;
+      }
+    }
+    final occupancyPct = totalNights == 0
+        ? 0
+        : (occupiedNights / totalNights * 100).round();
+    final pendingBalance = totalRevenue - totalCollected;
+
+    // Table rows
+    final tableData = [
+      ['#', 'Huesped', 'Check-in', 'Check-out', 'Noches', 'Total (RD\$)', 'Cobrado (RD\$)', 'Estado'],
+      for (var i = 0; i < bookings.length; i++) ...[
+        [
+          '${i + 1}',
+          bookings[i].guestName,
+          _dateFmt.format(bookings[i].checkIn),
+          _dateFmt.format(bookings[i].checkOut),
+          '${bookings[i].checkOut.difference(bookings[i].checkIn).inDays}',
+          bookings[i].totalPrice.toStringAsFixed(0),
+          bookings[i].depositPaid.toStringAsFixed(0),
+          _statusLabel(bookings[i].status),
+        ]
+      ],
+    ];
+
+    return pw.MultiPage(
+      pageFormat: format,
+      margin: const pw.EdgeInsets.all(40),
+      build: (_) => [
+        _header('REPORTE ANUAL $year'),
+        pw.SizedBox(height: 24),
+
+        // Stats summary
+        pw.Container(
+          padding: const pw.EdgeInsets.all(14),
+          decoration: pw.BoxDecoration(
+            color: PdfColors.indigo50,
+            borderRadius: pw.BorderRadius.circular(8),
+          ),
+          child: pw.Column(
+            children: [
+              _statRow('Reservas en el año', '${bookings.length}'),
+              _statRow('Noches ocupadas',
+                  '$occupiedNights / $totalNights ($occupancyPct%)'),
+              _statRow('Ingresos totales',
+                  'RD\$ ${totalRevenue.toStringAsFixed(2)}'),
+              _statRow('Total cobrado',
+                  'RD\$ ${totalCollected.toStringAsFixed(2)}'),
+              _statRow('Balance pendiente',
+                  'RD\$ ${pendingBalance.toStringAsFixed(2)}'),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 24),
+
+        if (bookings.isEmpty)
+          pw.Center(
+            child: pw.Text(
+              'No hay reservas para el ano $year.',
+              style: const pw.TextStyle(color: PdfColors.grey600),
+            ),
+          )
+        else ...[
+          pw.Text(
+            'Detalle de reservas',
+            style: pw.TextStyle(
+              fontSize: 12,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.indigo800,
+            ),
+          ),
+          pw.SizedBox(height: 8),
+          pw.TableHelper.fromTextArray(
+            data: tableData,
+            headerStyle: pw.TextStyle(
+              fontWeight: pw.FontWeight.bold,
+              fontSize: 9,
+              color: PdfColors.white,
+            ),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.indigo800),
+            cellStyle: const pw.TextStyle(fontSize: 9),
+            cellAlignments: {
+              0: pw.Alignment.center,
+              4: pw.Alignment.center,
+              5: pw.Alignment.centerRight,
+              6: pw.Alignment.centerRight,
+              7: pw.Alignment.center,
+            },
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+            rowDecoration: const pw.BoxDecoration(color: PdfColors.white),
+            oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
+          ),
+        ],
+        pw.SizedBox(height: 16),
+        _footer('Reporte generado por VillaGuestRD.'),
+      ],
+    );
+  }
+
+  static pw.Widget _statRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 3),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label,
+              style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+          pw.Text(value,
+              style: pw.TextStyle(
+                  fontSize: 11, fontWeight: pw.FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  static String _statusLabel(String status) {
+    const labels = {
+      'pending': 'Pendiente',
+      'confirmed': 'Confirmada',
+      'completed': 'Completada',
+      'cancelled': 'Cancelada',
+    };
+    return labels[status] ?? status;
+  }
+
   // ─── Utilidades ───────────────────────────────────────────────────────────
 
   static String _shortId(String id) =>

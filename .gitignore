@@ -60,6 +60,7 @@ secrets/
 .agents/
 .claude/
 skills-lock.json
+CLAUDE.md
 
 # ── Misceláneos ───────────────────────────────────────────────────────────────
 *.class

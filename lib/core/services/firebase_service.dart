@@ -264,4 +264,57 @@ class FirebaseService {
       },
     );
   }
+
+  // ---------------------------------------------------------------------
+  // NOTIFICATIONS — FCM token management + send via send-notification Edge Fn
+  // ---------------------------------------------------------------------
+
+  static final Uri _notifyUri =
+      Uri.parse('${SupabaseConfig.url}/functions/v1/send-notification');
+
+  /// Persists (or refreshes) the FCM token for this user document.
+  Future<void> saveFcmToken({required String uid, required String token}) async {
+    try {
+      await _db.collection('users').doc(uid).update({
+        'fcmToken': token,
+        'fcmUpdatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+  }
+
+  /// Sends a push notification to every user of [villaId] that has a stored
+  /// FCM token, optionally skipping [excludeUid] (the action initiator).
+  /// Failures are silently swallowed — notifications are best-effort.
+  Future<void> sendNotificationToVilla({
+    required String villaId,
+    required String title,
+    required String body,
+    String? excludeUid,
+  }) async {
+    try {
+      final snapshot = await _db
+          .collection('users')
+          .where('villa', isEqualTo: villaId)
+          .get();
+
+      final tokens = snapshot.docs
+          .where((doc) => doc.id != excludeUid)
+          .map((doc) => doc.data()['fcmToken'] as String?)
+          .whereType<String>()
+          .where((t) => t.isNotEmpty)
+          .toList();
+
+      if (tokens.isEmpty) return;
+
+      final idToken = await _firebaseIdToken();
+      await http.post(
+        _notifyUri,
+        headers: {
+          ..._baseHeaders(idToken),
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'tokens': tokens, 'title': title, 'body': body}),
+      );
+    } catch (_) {}
+  }
 }

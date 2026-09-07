@@ -5,6 +5,7 @@ class VillaSettingsModel {
     this.logoUrl,
     this.contactPhone,
     this.contactEmail,
+    this.pricePerNight,
   });
 
   final String villaId;
@@ -12,6 +13,7 @@ class VillaSettingsModel {
   final String? logoUrl;
   final String? contactPhone;
   final String? contactEmail;
+  final double? pricePerNight;
 
   factory VillaSettingsModel.initial(String villaId) => VillaSettingsModel(
         villaId: villaId,
@@ -26,6 +28,7 @@ class VillaSettingsModel {
         logoUrl: data['logoUrl'] as String?,
         contactPhone: data['contactPhone'] as String?,
         contactEmail: data['contactEmail'] as String?,
+        pricePerNight: (data['pricePerNight'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -33,19 +36,6 @@ class VillaSettingsModel {
         'logoUrl': logoUrl,
         'contactPhone': contactPhone,
         'contactEmail': contactEmail,
+        'pricePerNight': pricePerNight,
       };
-
-  VillaSettingsModel copyWith({
-    String? displayName,
-    String? logoUrl,
-    String? contactPhone,
-    String? contactEmail,
-  }) =>
-      VillaSettingsModel(
-        villaId: villaId,
-        displayName: displayName ?? this.displayName,
-        logoUrl: logoUrl ?? this.logoUrl,
-        contactPhone: contactPhone ?? this.contactPhone,
-        contactEmail: contactEmail ?? this.contactEmail,
-      );
 }

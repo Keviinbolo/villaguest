@@ -22,6 +22,9 @@ class CleaningProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
+  int get pendingCount =>
+      _checklists.where((c) => c.status != 'completed').length;
+
   void updateAuthorization(bool hasAccess, String? villaId) {
     if (hasAccess == _hasAccess && villaId == _villaId) return;
     _hasAccess = hasAccess;
@@ -69,6 +72,16 @@ class CleaningProvider extends ChangeNotifier {
       guestName: guestName,
       checkOutDate: checkOutDate,
       villaId: _villaId!,
+    );
+  }
+
+  Future<void> completeTaskWithoutPhoto({
+    required String checklistId,
+    required String taskId,
+  }) {
+    return _repository.completeTaskWithoutPhoto(
+      checklistId: checklistId,
+      taskId: taskId,
     );
   }
 

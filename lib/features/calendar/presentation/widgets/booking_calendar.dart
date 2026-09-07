@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:villaguest/core/theme/app_theme.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 
 
@@ -24,7 +25,7 @@ class BookingCalendar extends StatefulWidget {
   const BookingCalendar({super.key, this.onRangeSelected, this.onBookedDayTap});
 
   final void Function(DateTime checkIn, DateTime checkOut)? onRangeSelected;
-  final VoidCallback? onBookedDayTap;
+  final void Function(DateTime day)? onBookedDayTap;
 
   @override
   State<BookingCalendar> createState() => _BookingCalendarState();
@@ -250,32 +251,30 @@ class _BookingCalendarState extends State<BookingCalendar> {
     final isDisabled = isPast || isBooked;
 
     Color backgroundColor;
-    Color textColor = Colors.black87;
+    Color textColor;
     Border? border;
 
     if (isSelected) {
-      backgroundColor = Colors.green.shade600;
+      backgroundColor = AppTheme.teal;
       textColor = Colors.white;
     } else if (isBooked) {
-      backgroundColor = Colors.orange.shade200;
-      textColor = Colors.brown.shade800;
+      backgroundColor = AppTheme.lime.withValues(alpha: 0.18);
+      textColor = const Color(0xFF7A5500);
     } else if (isPast) {
-      backgroundColor = Colors.grey.shade200;
-      textColor = Colors.grey.shade500;
+      backgroundColor = const Color(0xFFEEF0EE);
+      textColor = const Color(0xFFADBBB4);
     } else {
-      backgroundColor = Colors.green.shade100;
+      backgroundColor = AppTheme.sage.withValues(alpha: 0.30);
+      textColor = AppTheme.navy;
     }
 
     if (isToday && !isSelected) {
-      border = Border.all(
-        color: Colors.green.shade700,
-        width: 2,
-      );
+      border = Border.all(color: AppTheme.teal, width: 2);
     }
 
     VoidCallback? onTap;
     if (isBooked && !isPast && widget.onBookedDayTap != null) {
-      onTap = widget.onBookedDayTap;
+      onTap = () => widget.onBookedDayTap!(day);
     } else if (!isDisabled) {
       onTap = () => _handleDayTap(day, bookingProvider);
     }
@@ -306,21 +305,29 @@ class _BookingCalendarState extends State<BookingCalendar> {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 12, height: 12, color: color),
-          const SizedBox(width: 4),
-          Text(label, style: const TextStyle(fontSize: 12)),
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(3),
+              border: Border.all(color: color.withValues(alpha: 0.4), width: 0.5),
+            ),
+          ),
+          const SizedBox(width: 5),
+          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF5A7568))),
         ],
       );
     }
 
     return Wrap(
       spacing: 16,
-      runSpacing: 4,
+      runSpacing: 6,
       children: [
-        legendItem(Colors.green.shade100, 'Libre'),
-        legendItem(Colors.orange.shade200, 'Reservado'),
-        legendItem(Colors.green.shade600, 'Selección'),
-        legendItem(Colors.grey.shade200, 'Pasado'),
+        legendItem(AppTheme.sage.withValues(alpha: 0.30), 'Libre'),
+        legendItem(AppTheme.lime.withValues(alpha: 0.18), 'Reservado'),
+        legendItem(AppTheme.teal, 'Selección'),
+        legendItem(const Color(0xFFEEF0EE), 'Pasado'),
       ],
     );
   }

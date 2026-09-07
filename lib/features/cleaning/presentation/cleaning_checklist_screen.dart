@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:villaguest/core/theme/app_theme.dart';
 import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/features/cleaning/data/cleaning_checklist_model.dart';
 import 'package:villaguest/features/cleaning/data/cleaning_task_model.dart';
 
-
 import '../providers/cleaning_provider.dart';
 
-/// Detalle de un checklist: una tarea por fila, cada una requiere una
-/// foto para poder marcarse como completada. Se suscribe al
-/// CleaningProvider en vivo (igual que BookingDetailScreen) para que la
-/// pantalla se actualice sola cuando sube una foto.
 class CleaningChecklistScreen extends StatefulWidget {
   const CleaningChecklistScreen({super.key, required this.checklistId});
 
@@ -23,9 +19,6 @@ class CleaningChecklistScreen extends StatefulWidget {
 
 class _CleaningChecklistScreenState extends State<CleaningChecklistScreen> {
   final ImagePicker _picker = ImagePicker();
-
-  /// taskId de la tarea que está subiendo foto en este momento (para
-  /// mostrar un loader solo en esa fila, no en toda la pantalla).
   String? _uploadingTaskId;
 
   Future<void> _pickAndUploadPhoto(
@@ -34,15 +27,11 @@ class _CleaningChecklistScreenState extends State<CleaningChecklistScreen> {
     ImageSource source,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
-
     try {
       final file = await _picker.pickImage(source: source, imageQuality: 80);
-      if (file == null) return; // el usuario canceló
-
+      if (file == null) return;
       setState(() => _uploadingTaskId = taskId);
-
       final bytes = await file.readAsBytes();
-
       await provider.completeTaskWithPhoto(
         checklistId: widget.checklistId,
         taskId: taskId,
@@ -58,14 +47,14 @@ class _CleaningChecklistScreenState extends State<CleaningChecklistScreen> {
   void _showPhotoSourceSheet(CleaningProvider provider, String taskId) {
     showModalBottomSheet(
       context: context,
-      builder: (sheetContext) => SafeArea(
+      builder: (ctx) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt_outlined),
               title: const Text('Tomar foto'),
               onTap: () {
-                Navigator.of(sheetContext).pop();
+                Navigator.of(ctx).pop();
                 _pickAndUploadPhoto(provider, taskId, ImageSource.camera);
               },
             ),
@@ -73,8 +62,20 @@ class _CleaningChecklistScreenState extends State<CleaningChecklistScreen> {
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('Elegir de galería'),
               onTap: () {
-                Navigator.of(sheetContext).pop();
+                Navigator.of(ctx).pop();
                 _pickAndUploadPhoto(provider, taskId, ImageSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline, color: Color(0xFF6B7A99)),
+              title: const Text('Marcar sin foto'),
+              subtitle: const Text('Solo si no es posible tomar una'),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                provider.completeTaskWithoutPhoto(
+                  checklistId: widget.checklistId,
+                  taskId: taskId,
+                );
               },
             ),
           ],
@@ -115,107 +116,287 @@ class _CleaningChecklistScreenState extends State<CleaningChecklistScreen> {
     }
 
     final tasks = checklist.orderedTasks;
+    final isCompleted = checklist.status == 'completed';
 
     return Scaffold(
+      backgroundColor: AppTheme.surfacePage,
       appBar: GradientAppBar(title: 'Limpieza — ${checklist.guestName}'),
       body: Column(
         children: [
-          _buildProgressHeader(checklist),
+          _ProgressHeader(checklist: checklist),
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.all(16),
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
               itemCount: tasks.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) =>
-                  _buildTaskTile(provider, tasks[index]),
+                  _TaskCard(
+                    task: tasks[index],
+                    isUploading: _uploadingTaskId == tasks[index].id,
+                    onUpload: () => _showPhotoSourceSheet(provider, tasks[index].id),
+                    onReset: () => provider.resetTask(
+                      checklistId: widget.checklistId,
+                      taskId: tasks[index].id,
+                    ),
+                  ),
             ),
           ),
-          if (checklist.status != 'completed')
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: checklist.isFullyComplete
-                      ? () => _markChecklistCompleted(provider)
-                      : null,
-                  child: Text(
-                    checklist.isFullyComplete
-                        ? 'Marcar checklist como completado'
-                        : 'Faltan ${checklist.totalTasks - checklist.completedTasksCount} tareas con foto',
-                  ),
-                ),
-              ),
+          if (!isCompleted)
+            _CompleteButton(
+              checklist: checklist,
+              onComplete: () => _markChecklistCompleted(provider),
             ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildProgressHeader(CleaningChecklistModel checklist) {
-    final progress =
-        checklist.totalTasks == 0 ? 0.0 : checklist.completedTasksCount / checklist.totalTasks;
+// ── Progress header ───────────────────────────────────────────────────────────
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+class _ProgressHeader extends StatelessWidget {
+  const _ProgressHeader({required this.checklist});
+  final CleaningChecklistModel checklist;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = checklist.totalTasks == 0
+        ? 0.0
+        : checklist.completedTasksCount / checklist.totalTasks;
+    final color = checklist.status == 'completed'
+        ? AppTheme.teal
+        : checklist.completedTasksCount > 0
+            ? AppTheme.lime
+            : const Color(0xFF6B7A99);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceCard,
+        border: const Border(bottom: BorderSide(color: AppTheme.borderSubtle)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${checklist.completedTasksCount} de ${checklist.totalTasks} tareas'),
-          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${checklist.completedTasksCount} de ${checklist.totalTasks} tareas',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+              Text(
+                '${(progress * 100).toStringAsFixed(0)}%',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: progress, minHeight: 6),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: color.withValues(alpha: 0.12),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildTaskTile(CleaningProvider provider, CleaningTaskModel task) {
-    final isUploading = _uploadingTaskId == task.id;
+// ── Task card ─────────────────────────────────────────────────────────────────
+
+class _TaskCard extends StatelessWidget {
+  const _TaskCard({
+    required this.task,
+    required this.isUploading,
+    required this.onUpload,
+    required this.onReset,
+  });
+
+  final CleaningTaskModel task;
+  final bool isUploading;
+  final VoidCallback onUpload;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = task.isCompleted;
+    final color = done ? AppTheme.teal : const Color(0xFF6B7A99);
 
     return Card(
-      margin: EdgeInsets.zero,
-      child: ListTile(
-        leading: task.isCompleted && task.photoUrl != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image.network(
-                  task.photoUrl!,
-                  width: 48,
-                  height: 48,
-                  fit: BoxFit.cover,
+      margin: const EdgeInsets.only(bottom: 8),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // ── Foto / ícono ─────────────────────────────────────────
+            if (done && task.photoUrl != null)
+              GestureDetector(
+                onTap: () => _showFullPhoto(context, task.photoUrl!),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.network(
+                    task.photoUrl!,
+                    width: 52,
+                    height: 52,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppTheme.sage.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.broken_image_outlined,
+                          color: AppTheme.teal, size: 22),
+                    ),
+                  ),
                 ),
               )
-            : CircleAvatar(
-                backgroundColor: Colors.grey.shade200,
-                child: const Icon(Icons.camera_alt_outlined, color: Colors.grey),
+            else
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: color.withValues(alpha: 0.28),
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(
+                  done ? Icons.check_circle_outline : Icons.camera_alt_outlined,
+                  color: color,
+                  size: 22,
+                ),
               ),
-        title: Text(task.title),
-        subtitle: task.isCompleted
-            ? const Text('Completada', style: TextStyle(color: Colors.green))
-            : const Text('Pendiente de foto'),
-        trailing: isUploading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
+            const SizedBox(width: 12),
+
+            // ── Título + estado ──────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: done ? AppTheme.navy : const Color(0xFF3D4A5C),
+                      decoration: done ? TextDecoration.none : null,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.10),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: color.withValues(alpha: 0.30)),
+                        ),
+                        child: Text(
+                          done
+                              ? (task.photoUrl != null
+                                  ? 'Completada'
+                                  : 'Sin foto')
+                              : 'Pendiente',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: color,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Acción ──────────────────────────────────────────────
+            if (isUploading)
+              const SizedBox(
+                width: 24,
+                height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            : task.isCompleted
-                ? IconButton(
-                    icon: const Icon(Icons.refresh),
-                    tooltip: 'Rehacer',
-                    onPressed: () => provider.resetTask(
-                      checklistId: widget.checklistId,
-                      taskId: task.id,
-                    ),
-                  )
-                : IconButton(
-                    icon: const Icon(Icons.add_a_photo_outlined),
-                    tooltip: 'Subir foto',
-                    onPressed: () => _showPhotoSourceSheet(provider, task.id),
-                  ),
+            else if (done)
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 20),
+                tooltip: 'Rehacer',
+                color: const Color(0xFF6B7A99),
+                onPressed: onReset,
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.add_a_photo_outlined, size: 20),
+                tooltip: 'Subir foto',
+                color: AppTheme.teal,
+                onPressed: onUpload,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFullPhoto(BuildContext context, String url) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.black,
+        child: InteractiveViewer(
+          child: Image.network(url, fit: BoxFit.contain),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Complete button ───────────────────────────────────────────────────────────
+
+class _CompleteButton extends StatelessWidget {
+  const _CompleteButton({required this.checklist, required this.onComplete});
+  final CleaningChecklistModel checklist;
+  final VoidCallback onComplete;
+
+  @override
+  Widget build(BuildContext context) {
+    final ready = checklist.isFullyComplete;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      decoration: const BoxDecoration(
+        color: AppTheme.surfaceCard,
+        border: Border(top: BorderSide(color: AppTheme.borderSubtle)),
+      ),
+      child: FilledButton.icon(
+        icon: Icon(ready ? Icons.check_circle_outline : Icons.lock_outline, size: 18),
+        label: Text(
+          ready
+              ? 'Marcar checklist como completado'
+              : 'Faltan ${checklist.totalTasks - checklist.completedTasksCount} tareas con foto',
+        ),
+        onPressed: ready ? onComplete : null,
       ),
     );
   }

@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
+import 'package:villaguest/features/settings/presentation/providers/villa_settings_provider.dart';
 
 import '../../data/models/booking_model.dart';
 
-
 /// Diálogo para crear una reserva a partir de un rango de fechas ya
-/// seleccionado en el calendario. Pide los datos del huésped y el
-/// desglose de precio, valida, y llama a BookingProvider.createBooking().
+/// seleccionado en el calendario.
 class CreateBookingDialog extends StatefulWidget {
   const CreateBookingDialog({
     super.key,
@@ -33,8 +32,28 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
   final _depositController = TextEditingController();
 
   bool _isSubmitting = false;
+  bool _priceInitialized = false;
+  double? _pricePerNight;
+  String? _errorMessage;
+  String? _source;
+  int _guestCount = 2;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  static String _friendlyError(Object e) {
+    final msg = e.toString();
+    if (msg.contains('permission-denied')) {
+      return 'Sin permisos para crear reservas. Contacta al administrador.';
+    }
+    if (msg.contains('unavailable') || msg.contains('network')) {
+      return 'Sin conexión. Verifica tu internet e intenta de nuevo.';
+    }
+    if (msg.contains('ya no están disponibles') ||
+        msg.contains('disponibles')) {
+      return 'Las fechas seleccionadas ya están ocupadas por otra reserva.';
+    }
+    return 'No se pudo crear la reserva. Intenta de nuevo.';
+  }
 
   int get _nights => widget.checkOut.difference(widget.checkIn).inDays;
 
@@ -57,22 +76,23 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
   }
 
   Future<void> _submit() async {
+    setState(() => _errorMessage = null);
+
     if (!_formKey.currentState!.validate()) return;
 
     final totalPrice = double.parse(_totalPriceController.text.trim());
     final depositPaid = double.parse(_depositController.text.trim());
 
     if (depositPaid > totalPrice) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La señal no puede ser mayor al precio total.')),
-      );
+      setState(() =>
+          _errorMessage = 'La señal no puede superar el precio total (RD\$ ${totalPrice.toStringAsFixed(0)}).');
       return;
     }
 
     setState(() => _isSubmitting = true);
 
     final booking = BookingModel(
-      id: '', // el repositorio genera el ID real antes de escribir en Firestore
+      id: '',
       guestName: _nameController.text.trim(),
       guestEmail: _emailController.text.trim(),
       guestPhone: _phoneController.text.trim(),
@@ -82,16 +102,10 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
       depositPaid: depositPaid,
       status: 'pending',
       createdAt: DateTime.now(),
+      source: _source,
+      guestCount: _guestCount,
     );
 
-    // IMPORTANTE: capturamos Navigator, ScaffoldMessenger y el provider
-    // ANTES del await. Si los pedimos DESPUÉS del await (como estaba
-    // antes), el BuildContext puede haber quedado obsoleto —por
-    // ejemplo porque BookingProvider notificó un cambio del stream de
-    // Firestore mientras esperábamos y algo por encima se reconstruyó—
-    // y Navigator.of(context).pop() deja de funcionar en silencio: la
-    // reserva SÍ se crea (por eso la veías en rojo) pero el diálogo
-    // nunca se cierra y el botón se queda girando.
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final bookingProvider = context.read<BookingProvider>();
@@ -103,16 +117,33 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
         SnackBar(content: Text('Reserva creada para ${booking.guestName}.')),
       );
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('No se pudo crear la reserva: $e')),
-      );
-      if (mounted) setState(() => _isSubmitting = false);
+      if (mounted) {
+        setState(() {
+          _errorMessage = _friendlyError(e);
+          _isSubmitting = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Pre-rellena el precio total con pricePerNight × noches en cuanto
+    // los ajustes estén disponibles (el stream puede llegar tras el primer build).
+    final settingsProvider = context.watch<VillaSettingsProvider>();
+    if (!_priceInitialized && !settingsProvider.isLoading) {
+      _priceInitialized = true;
+      _pricePerNight = settingsProvider.settings?.pricePerNight;
+      if (_pricePerNight != null && _pricePerNight! > 0) {
+        _totalPriceController.text =
+            (_pricePerNight! * _nights).toStringAsFixed(0);
+      }
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       title: const Text('Nueva reserva'),
       content: SingleChildScrollView(
         child: Form(
@@ -121,27 +152,56 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${formatDate(widget.checkIn)} → ${formatDate(widget.checkOut)}'
-                ' ($_nights ${_nights == 1 ? 'noche' : 'noches'})',
-                style: Theme.of(context).textTheme.bodyMedium,
+              // ── Rango de fechas ─────────────────────────────────────
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.date_range_outlined,
+                        size: 16, color: colorScheme.onPrimaryContainer),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${formatDate(widget.checkIn)} → ${formatDate(widget.checkOut)}'
+                        '  ·  $_nights ${_nights == 1 ? 'noche' : 'noches'}',
+                        style: TextStyle(
+                          color: colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
+
+              // ── Datos del huésped ───────────────────────────────────
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nombre del huésped'),
+                decoration: const InputDecoration(
+                  labelText: 'Nombre del huésped',
+                  border: OutlineInputBorder(),
+                ),
                 textCapitalization: TextCapitalization.words,
-                validator: (value) =>
-                    (value == null || value.trim().isEmpty) ? 'Requerido' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: const InputDecoration(
+                  labelText: 'Email',
+                  border: OutlineInputBorder(),
+                ),
                 keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) return 'Requerido';
-                  if (!_emailRegex.hasMatch(value.trim())) return 'Email inválido';
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return 'Requerido';
+                  if (!_emailRegex.hasMatch(v.trim())) return 'Email inválido';
                   return null;
                 },
               ),
@@ -151,33 +211,108 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Teléfono (WhatsApp)',
                   hintText: '+1 809 000 0000',
+                  border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.phone,
-                validator: (value) =>
-                    (value == null || value.trim().isEmpty) ? 'Requerido' : null,
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _totalPriceController,
-                      decoration: const InputDecoration(labelText: 'Precio total (RD\$)'),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: _validatePositiveNumber,
+                  const Expanded(
+                    child: Text(
+                      'Número de huéspedes',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _depositController,
-                      decoration: const InputDecoration(labelText: 'Señal (RD\$)'),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: _validatePositiveNumber,
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: _guestCount > 1
+                        ? () => setState(() => _guestCount--)
+                        : null,
+                  ),
+                  Text(
+                    '$_guestCount',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setState(() => _guestCount++),
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _source,
+                decoration: const InputDecoration(
+                  labelText: 'Canal de reserva',
+                  border: OutlineInputBorder(),
+                ),
+                hint: const Text('Seleccionar canal'),
+                items: BookingModel.sourceLabels.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                    .toList(),
+                onChanged: (v) => setState(() => _source = v),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Precio ──────────────────────────────────────────────
+              TextFormField(
+                controller: _totalPriceController,
+                decoration: InputDecoration(
+                  labelText: 'Precio total (RD\$)',
+                  border: const OutlineInputBorder(),
+                  helperText: _pricePerNight != null && _pricePerNight! > 0
+                      ? 'RD\$ ${_pricePerNight!.toStringAsFixed(0)}/noche × $_nights noches'
+                      : null,
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: _validatePositiveNumber,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _depositController,
+                decoration: const InputDecoration(
+                  labelText: 'Señal / depósito (RD\$)',
+                  border: OutlineInputBorder(),
+                  helperText: 'Puede ser 0 si no se cobra señal',
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                validator: _validatePositiveNumber,
+              ),
+
+              // ── Error inline ─────────────────────────────────────────
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.error_outline,
+                          color: colorScheme.error, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                            color: colorScheme.onErrorContainer,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

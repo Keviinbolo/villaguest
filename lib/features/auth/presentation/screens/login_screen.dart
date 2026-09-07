@@ -11,239 +11,272 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   bool _isSubmitting = false;
   bool _obscurePassword = true;
-
-  late AnimationController _gradientController;
-  late Animation<Alignment> _beginAlign;
-  late Animation<Alignment> _endAlign;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _gradientController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 5),
-    )..repeat(reverse: true);
-
-    _beginAlign = AlignmentTween(
-      begin: Alignment.topLeft,
-      end: Alignment.centerRight,
-    ).animate(CurvedAnimation(
-      parent: _gradientController,
-      curve: Curves.easeInOut,
-    ));
-
-    _endAlign = AlignmentTween(
-      begin: Alignment.bottomRight,
-      end: Alignment.centerLeft,
-    ).animate(CurvedAnimation(
-      parent: _gradientController,
-      curve: Curves.easeInOut,
-    ));
-  }
+  String? _errorMessage;
 
   @override
   void dispose() {
-    _gradientController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    setState(() => _errorMessage = null);
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSubmitting = true);
 
-    final messenger = ScaffoldMessenger.of(context);
     final authProvider = context.read<AuthProvider>();
-
     final error = await authProvider.signIn(
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
 
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
+    setState(() {
+      _isSubmitting = false;
+      _errorMessage = error;
+    });
+  }
 
-    if (error != null) {
-      messenger.showSnackBar(SnackBar(content: Text(error)));
-    }
+  Widget _blob(double size, Color color, double opacity) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color.withValues(alpha: opacity),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedBuilder(
-        animation: _gradientController,
-        builder: (context, child) => Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: _beginAlign.value,
-              end: _endAlign.value,
-              colors: const [AppTheme.teal, AppTheme.navy],
-            ),
+      backgroundColor: AppTheme.surfacePage,
+      body: Stack(
+        children: [
+          // Ambient blob — teal, top-right
+          Positioned(
+            top: -110,
+            right: -90,
+            child: _blob(300, AppTheme.teal, 0.07),
           ),
-          child: child,
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 360),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // ── Logo ───────────────────────────────────────────
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Image(
-                        image: AssetImage('assets/icon/icon.png'),
-                        width: 56,
-                        height: 56,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'VillaGuestRD',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Gestión de tu villa',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.75),
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 36),
+          // Ambient blob — gold, bottom-left
+          Positioned(
+            bottom: -80,
+            left: -110,
+            child: _blob(280, AppTheme.lime, 0.06),
+          ),
+          // Accent blob — sage, mid-right
+          Positioned(
+            top: 220,
+            right: -40,
+            child: _blob(120, AppTheme.sage, 0.20),
+          ),
 
-                    // ── Tarjeta con formulario ─────────────────────────
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.navy.withValues(alpha: 0.35),
-                            blurRadius: 40,
-                            spreadRadius: -4,
-                            offset: const Offset(0, 16),
-                          ),
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(28),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Iniciar sesión',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleLarge
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                           
-                            const SizedBox(height: 24),
-                            TextFormField(
-                              controller: _emailController,
-                              decoration: const InputDecoration(
-                                labelText: 'Correo',
-                                prefixIcon: Icon(Icons.email_outlined),
-                                border: OutlineInputBorder(),
-                              ),
-                              keyboardType: TextInputType.emailAddress,
-                              autofillHints: const [AutofillHints.email],
-                              validator: (value) =>
-                                  (value == null || value.trim().isEmpty)
-                                      ? 'Requerido'
-                                      : null,
-                            ),
-                            const SizedBox(height: 16),
-                            TextFormField(
-                              controller: _passwordController,
-                              decoration: InputDecoration(
-                                labelText: 'Contraseña',
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                border: const OutlineInputBorder(),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword
-                                        ? Icons.visibility_off
-                                        : Icons.visibility,
-                                  ),
-                                  onPressed: () => setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  ),
-                                ),
-                              ),
-                              obscureText: _obscurePassword,
-                              autofillHints: const [AutofillHints.password],
-                              validator: (value) =>
-                                  (value == null || value.isEmpty)
-                                      ? 'Requerido'
-                                      : null,
-                              onFieldSubmitted: (_) => _submit(),
-                            ),
-                            const SizedBox(height: 28),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton(
-                                onPressed: _isSubmitting ? null : _submit,
-                                style: FilledButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 14),
-                                ),
-                                child: _isSubmitting
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Ingresar',
-                                        style: TextStyle(fontSize: 15),
-                                      ),
-                              ),
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 380),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ── Logo ──────────────────────────────────────────
+                      Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: AppTheme.teal,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.teal.withValues(alpha: 0.28),
+                              blurRadius: 36,
+                              offset: const Offset(0, 12),
                             ),
                           ],
                         ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/icon/icon.png',
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 22),
+                      const Text(
+                        'VillaGuestRD',
+                        style: TextStyle(
+                          color: AppTheme.navy,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                          height: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        'Gestión de tu villa',
+                        style: TextStyle(
+                          color: Color(0xFF5A7568),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                      const SizedBox(height: 40),
+
+                      // ── Form card ─────────────────────────────────────
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border:
+                              Border.all(color: AppTheme.borderSubtle),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  AppTheme.navy.withValues(alpha: 0.07),
+                              blurRadius: 48,
+                              offset: const Offset(0, 16),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(28),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Iniciar sesión',
+                                style: TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.navy,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              TextFormField(
+                                controller: _emailController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Correo electrónico',
+                                  prefixIcon:
+                                      Icon(Icons.email_outlined),
+                                ),
+                                keyboardType:
+                                    TextInputType.emailAddress,
+                                autofillHints: const [
+                                  AutofillHints.email
+                                ],
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                        ? 'Requerido'
+                                        : null,
+                              ),
+                              const SizedBox(height: 14),
+                              TextFormField(
+                                controller: _passwordController,
+                                decoration: InputDecoration(
+                                  labelText: 'Contraseña',
+                                  prefixIcon:
+                                      const Icon(Icons.lock_outline),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons
+                                              .visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                    ),
+                                    onPressed: () => setState(() =>
+                                        _obscurePassword =
+                                            !_obscurePassword),
+                                  ),
+                                ),
+                                obscureText: _obscurePassword,
+                                autofillHints: const [
+                                  AutofillHints.password
+                                ],
+                                validator: (v) =>
+                                    (v == null || v.isEmpty)
+                                        ? 'Requerido'
+                                        : null,
+                                onFieldSubmitted: (_) => _submit(),
+                              ),
+
+                              // ── Error inline ───────────────────────
+                              if (_errorMessage != null) ...[
+                                const SizedBox(height: 14),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFDAD6),
+                                    borderRadius:
+                                        BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.error_outline,
+                                          color: Color(0xFFBA1A1A),
+                                          size: 18),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _errorMessage!,
+                                          style: const TextStyle(
+                                            color: Color(0xFF410002),
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton(
+                                  onPressed:
+                                      _isSubmitting ? null : _submit,
+                                  child: _isSubmitting
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child:
+                                              CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Text('Ingresar'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

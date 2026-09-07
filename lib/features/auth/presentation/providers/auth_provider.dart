@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../../../core/services/firebase_service.dart';
+import '../../../../core/services/notification_service.dart';
 
 /// Estado de autenticación del usuario, incluido su rol.
 ///
@@ -28,6 +30,7 @@ class AuthProvider extends ChangeNotifier {
   String? _role;
   String? _villa;
   bool _isInitializing = true;
+  bool _notificationsReady = false;
 
   User? get user => _user;
   bool get isLoggedIn => _user != null;
@@ -54,10 +57,14 @@ class AuthProvider extends ChangeNotifier {
         _role = null;
         _villa = null;
         _isInitializing = false;
+        _notificationsReady = false;
+        NotificationService.instance.reset();
+        if (!kIsWeb) FirebaseCrashlytics.instance.setUserIdentifier('');
         notifyListeners();
         return;
       }
 
+      if (!kIsWeb) FirebaseCrashlytics.instance.setUserIdentifier(user.uid);
       _subscribeToRole(user.uid);
     });
   }
@@ -74,6 +81,16 @@ class AuthProvider extends ChangeNotifier {
         _role = doc.exists ? (doc.data()?['role'] as String?) : null;
         _villa = doc.exists ? (doc.data()?['villa'] as String?) : null;
         _isInitializing = false;
+
+        if (!kIsWeb && _villa != null) {
+          FirebaseCrashlytics.instance.setCustomKey('villaId', _villa!);
+        }
+
+        if (!_notificationsReady && _role != null && _villa != null) {
+          _notificationsReady = true;
+          NotificationService.instance.initialize(uid: uid);
+        }
+
         notifyListeners();
       },
       onError: (_) {

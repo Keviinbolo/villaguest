@@ -1,9 +1,16 @@
+import 'dart:ui';
+
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/core/config/supabase_config.dart';
+import 'package:villaguest/core/services/notification_service.dart';
 import 'package:villaguest/core/theme/app_theme.dart';
+import 'package:villaguest/core/widgets/connectivity_banner.dart';
 import 'package:villaguest/features/auth/presentation/screens/splash_screen.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
 import 'package:villaguest/features/cleaning/providers/cleaning_provider.dart';
@@ -17,6 +24,8 @@ import 'features/auth/presentation/screens/auth_gate.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Must be registered before runApp for background message handling.
+  FirebaseMessaging.onBackgroundMessage(onFirebaseBackgroundMessage);
   runApp(const MainApp());
 }
 
@@ -30,7 +39,20 @@ class MainApp extends StatelessWidget {
       publishableKey: SupabaseConfig.anonKey,
     ),
     Future.delayed(const Duration(seconds: 3)),
-  ]);
+  ]).then((_) => _initCrashlytics());
+
+  // Crashlytics no soporta Flutter Web; en el resto de plataformas
+  // capturamos errores de framework y de zonas no atrapados.
+  static Future<void> _initCrashlytics() async {
+    if (kIsWeb) return;
+    await FirebaseCrashlytics.instance
+        .setCrashlyticsCollectionEnabled(!kDebugMode);
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +147,9 @@ class MainApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             title: 'VillaGuestRD',
             theme: AppTheme.light,
+            navigatorKey: navigatorKey,
+            builder: (context, child) =>
+                ConnectivityBanner(child: child!),
             home: const AuthGate(),
           ),
         );

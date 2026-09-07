@@ -14,10 +14,13 @@ dependencies:
   firebase_core: ^3.8.0
   firebase_auth: ^5.3.3
   cloud_firestore: ^5.5.0
+  firebase_messaging: ^15.0.0
+  firebase_crashlytics: ^4.3.10
   supabase_flutter: ^2.0.0
 
   # Estado
   provider: ^6.1.2
+  google_fonts: ^6.2.1
 
   # Utilidades
   intl: ^0.20.3                  # Formateo de fechas y monedas
@@ -28,7 +31,8 @@ dependencies:
   pdf: ^3.11.1
   printing: ^5.13.2
   http: ^1.6.0
-  
+  connectivity_plus: ^7.3.1
+
 
 dev_dependencies:
   flutter_test:

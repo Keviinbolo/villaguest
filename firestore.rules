@@ -3,102 +3,105 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
     function isSignedIn() {
       return request.auth != null;
-    }
-
-    function userDoc() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
     function userDocExists() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    // FIX Vuln 1: El fallback "sin documento = admin" fue eliminado.
-    // Todo usuario DEBE tener un documento /users/{uid} con role:'admin'
-    // creado manualmente desde Firebase Console para tener acceso.
-    // Un usuario autenticado sin documento no tiene ningún privilegio.
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAdmin() {
-      return isSignedIn() &&
-        userDocExists() &&
-        userDoc().data.role == 'admin';
+      return isSignedIn() && userDocExists() && userDoc().role == 'admin';
     }
 
     function isStaff() {
-      return isSignedIn() &&
-        userDocExists() &&
-        userDoc().data.role == 'staff';
+      return isSignedIn() && userDocExists() && userDoc().role == 'staff';
     }
 
-    // FIX Vuln 2: Aislamiento por villa.
-    // Devuelve el villaId asignado al usuario autenticado.
+    function isMember() {
+      return isAdmin() || isStaff();
+    }
+
     function myVilla() {
-      return userDoc().data.villa;
+      return userDoc().villa;
     }
 
-    // Verifica que el documento existente pertenece a la villa del usuario.
-    function resourceBelongsToMyVilla() {
-      return resource.data.villaId == myVilla();
+    // Existing document belongs to the user's villa
+    function resourceIsMyVilla() {
+      return isMember() && resource.data.villaId == myVilla();
     }
 
-    // Verifica que el documento que se va a escribir pertenece a la villa del usuario.
-    function requestBelongsToMyVilla() {
-      return request.resource.data.villaId == myVilla();
+    // Incoming document will belong to the user's villa
+    function requestIsMyVilla() {
+      return isMember() && request.resource.data.villaId == myVilla();
     }
 
-    // ─── Reservas ────────────────────────────────────────────────────────
-    // Solo admin. Lectura y escritura restringidas a la propia villa.
-    match /bookings/{bookingId} {
-      allow read:   if isAdmin() && resourceBelongsToMyVilla();
-      allow create: if isAdmin() && requestBelongsToMyVilla();
-      allow update: if isAdmin() && resourceBelongsToMyVilla() && requestBelongsToMyVilla();
-      allow delete: if isAdmin() && resourceBelongsToMyVilla();
-    }
-
-    // ─── Checklists de limpieza ───────────────────────────────────────────
-    // Admin y staff pueden leer y actualizar tareas.
-    // Solo admin puede crear y borrar (se gestiona desde el detalle de reserva).
-    match /cleaning_checklists/{checklistId} {
-      allow read:   if (isAdmin() || isStaff()) && resourceBelongsToMyVilla();
-      allow update: if (isAdmin() || isStaff()) && resourceBelongsToMyVilla();
-      allow create: if isAdmin() && requestBelongsToMyVilla();
-      allow delete: if isAdmin() && resourceBelongsToMyVilla();
-    }
-
-    // ─── Tickets de mantenimiento ─────────────────────────────────────────
-    // Admin y staff pueden leer, crear y actualizar.
-    // Solo admin puede borrar.
-    match /maintenance_tickets/{ticketId} {
-      allow read:   if (isAdmin() || isStaff()) && resourceBelongsToMyVilla();
-      allow create: if (isAdmin() || isStaff()) && requestBelongsToMyVilla();
-      allow update: if (isAdmin() || isStaff()) && resourceBelongsToMyVilla();
-      allow delete: if isAdmin() && resourceBelongsToMyVilla();
-    }
-
-    // ─── Huéspedes ────────────────────────────────────────────────────────
-    // Solo admin, misma restricción que bookings.
-    match /guests/{guestId} {
-      allow read:   if isAdmin() && resourceBelongsToMyVilla();
-      allow create: if isAdmin() && requestBelongsToMyVilla();
-      allow update: if isAdmin() && resourceBelongsToMyVilla() && requestBelongsToMyVilla();
-      allow delete: if isAdmin() && resourceBelongsToMyVilla();
-    }
-
-    // ─── Perfiles de usuario ──────────────────────────────────────────────
-    // Cada usuario puede leer SOLO su propio documento (para que la app
-    // sepa su rol y villa). Escritura solo por admin.
+    // ── users ─────────────────────────────────────────────────────────────────
+    // • A user can always read their own document (needed by AuthProvider).
+    // • A villa member can read other users in the same villa — required for
+    //   the FCM notification token lookup (sendNotificationToVilla queries
+    //   users by villa to collect device tokens).
+    // • A user can update only their own document, and only fields that are
+    //   NOT role or villa (prevents privilege escalation). This covers saving
+    //   the FCM token (fcmToken, fcmUpdatedAt).
+    // • No app-side create/delete — accounts are managed in Firebase Console.
     match /users/{uid} {
-      allow read:  if isSignedIn() && request.auth.uid == uid;
-      allow write: if isAdmin();
+      allow read: if isSignedIn() &&
+                     (request.auth.uid == uid ||
+                      (userDocExists() && resource.data.villa == myVilla()));
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == uid &&
+                       !request.resource.data.diff(resource.data)
+                           .affectedKeys().hasAny(['role', 'villa']);
     }
 
-    // ─── Configuración de villa ───────────────────────────────────────────
-    // Admin y staff pueden leer los ajustes de su propia villa (logo,
-    // nombre, contacto). Solo admin puede escribir.
-    match /villas/{villaId} {
-      allow read:  if (isAdmin() || isStaff()) && villaId == myVilla();
-      allow write: if isAdmin() && villaId == myVilla();
+    // ── bookings ──────────────────────────────────────────────────────────────
+    // Admin-only. Scoped to their villa.
+    match /bookings/{bookingId} {
+      allow read, delete: if isAdmin() && resourceIsMyVilla();
+      allow create:       if isAdmin() && requestIsMyVilla();
+      allow update:       if isAdmin() && resourceIsMyVilla() && requestIsMyVilla();
+    }
+
+    // ── cleaning_checklists ───────────────────────────────────────────────────
+    // Read + update: admin and staff (staff complete tasks in the field).
+    // Create + delete: admin only (created from booking detail).
+    match /cleaning_checklists/{checklistId} {
+      allow read, update: if resourceIsMyVilla();
+      allow create:       if isAdmin() && requestIsMyVilla();
+      allow delete:       if isAdmin() && resourceIsMyVilla();
+    }
+
+    // ── maintenance_tickets ───────────────────────────────────────────────────
+    // Read + create + update: admin and staff (staff reports issues in the field).
+    // Delete: admin only.
+    match /maintenance_tickets/{ticketId} {
+      allow read, update: if resourceIsMyVilla();
+      allow create:       if requestIsMyVilla();
+      allow delete:       if isAdmin() && resourceIsMyVilla();
+    }
+
+    // ── guests ────────────────────────────────────────────────────────────────
+    // Admin-only.
+    match /guests/{guestId} {
+      allow read, delete: if isAdmin() && resourceIsMyVilla();
+      allow create:       if isAdmin() && requestIsMyVilla();
+      allow update:       if isAdmin() && resourceIsMyVilla() && requestIsMyVilla();
+    }
+
+    // ── villa_settings ────────────────────────────────────────────────────────
+    // The document ID is the villaId itself, so we compare directly.
+    // Admin-only read and write.
+    match /villa_settings/{villaId} {
+      allow read, write: if isAdmin() && villaId == myVilla();
     }
   }
 }

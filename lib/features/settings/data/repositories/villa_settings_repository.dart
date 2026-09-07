@@ -4,7 +4,7 @@ import 'package:villaguest/core/services/firebase_service.dart';
 import '../models/villa_settings_model.dart';
 
 class VillaSettingsRepository {
-  static const String _collection = 'villas';
+  static const String _collection = 'villa_settings';
 
   final FirebaseService _firebase = FirebaseService.instance;
 

@@ -129,6 +129,22 @@ class MaintenanceTicketDetailScreen extends StatelessWidget {
                 height: 200,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  height: 200,
+                  width: double.infinity,
+                  color: const Color(0xFFEEF2ED),
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.broken_image_outlined,
+                          size: 40, color: Color(0xFF6B7A99)),
+                      SizedBox(height: 8),
+                      Text('No se pudo cargar la imagen',
+                          style: TextStyle(
+                              color: Color(0xFF6B7A99), fontSize: 13)),
+                    ],
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
