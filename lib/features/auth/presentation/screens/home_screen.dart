@@ -82,11 +82,12 @@ class HomeScreen extends StatelessWidget {
         .where((b) => b.status == 'pending')
         .length;
     final activeCount = bookingProvider.activeBookings.length;
-    final logoUrl = context.watch<VillaSettingsProvider>().settings?.logoUrl;
+    final settings = context.watch<VillaSettingsProvider>().settings;
+    final displayName = settings?.displayName;
 
     return Scaffold(
       appBar: GradientAppBar(
-        title: 'VillaGuestRD',
+        title: displayName ?? 'VillaGuestRD',
         leading: Builder(
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
@@ -98,7 +99,8 @@ class HomeScreen extends StatelessWidget {
       drawer: _buildDrawer(
         context,
         pendingCount: pendingCount,
-        logoUrl: logoUrl,
+        logoUrl: settings?.logoUrl,
+        displayName: displayName,
       ),
       body: Column(
         children: [
@@ -233,38 +235,47 @@ class HomeScreen extends StatelessWidget {
           final icon = e.isCheckIn ? Icons.login_outlined : Icons.logout_outlined;
           final typeLabel = e.isCheckIn ? 'Check-in' : 'Check-out';
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: color.withValues(alpha: 0.20)),
+          return InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) =>
+                    BookingDetailScreen(bookingId: e.booking.id),
+              ),
             ),
-            child: Row(
-              children: [
-                Icon(icon, color: color, size: 16),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    e.booking.guestName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                      color: AppTheme.navy,
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: color.withValues(alpha: 0.20)),
+              ),
+              child: Row(
+                children: [
+                  Icon(icon, color: color, size: 16),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      e.booking.guestName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: AppTheme.navy,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                Text(
-                  '$typeLabel · $dayLabel',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: color,
-                    fontWeight: FontWeight.w600,
+                  Text(
+                    '$typeLabel · $dayLabel',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         }),
@@ -342,6 +353,7 @@ class HomeScreen extends StatelessWidget {
     BuildContext context, {
     required int pendingCount,
     String? logoUrl,
+    String? displayName,
   }) {
     final auth = context.read<AuthProvider>();
     final email = auth.user?.email ?? '';
@@ -389,9 +401,9 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
-                  'VillaGuestRD',
-                  style: TextStyle(
+                Text(
+                  displayName ?? 'VillaGuestRD',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,

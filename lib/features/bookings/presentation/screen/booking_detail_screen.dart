@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:villaguest/core/theme/app_theme.dart';
 import 'package:villaguest/core/theme/gradient_app_bar.dart';
 import 'package:provider/provider.dart';
@@ -18,6 +21,10 @@ class BookingDetailScreen extends StatelessWidget {
   const BookingDetailScreen({super.key, required this.bookingId});
 
   final String bookingId;
+
+  static final _moneyFmt = NumberFormat('#,##0', 'en_US');
+  static String _fmtMoney(double v) =>
+      v == v.truncateToDouble() ? _moneyFmt.format(v.toInt()) : NumberFormat('#,##0.00', 'en_US').format(v);
 
   Future<void> _updateStatus(
     BuildContext context,
@@ -134,6 +141,17 @@ class BookingDetailScreen extends StatelessWidget {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final cleaningProvider = context.read<CleaningProvider>();
+
+    // Usa la caché local del provider para evitar el round-trip de red
+    final cached = cleaningProvider.checklists
+        .where((c) => c.bookingId == booking.id)
+        .firstOrNull;
+    if (cached != null) {
+      navigator.push(MaterialPageRoute(
+          builder: (_) => CleaningChecklistScreen(checklistId: cached.id)));
+      return;
+    }
+
     try {
       final id = await cleaningProvider.createChecklistForBooking(
         bookingId: booking.id,
@@ -145,6 +163,29 @@ class BookingDetailScreen extends StatelessWidget {
     } catch (e) {
       messenger.showSnackBar(
           SnackBar(content: Text('No se pudo abrir el checklist: $e')));
+    }
+  }
+
+  Future<void> _launchWhatsApp(BuildContext context, String phone) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    final uri = Uri.parse('https://wa.me/$digits');
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      await Clipboard.setData(ClipboardData(text: phone));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Número copiado al portapapeles.')),
+      );
+    }
+  }
+
+  Future<void> _launchEmail(BuildContext context, String email) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final uri = Uri(scheme: 'mailto', path: email);
+    if (!await launchUrl(uri)) {
+      await Clipboard.setData(ClipboardData(text: email));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Email copiado al portapapeles.')),
+      );
     }
   }
 
@@ -217,13 +258,10 @@ class BookingDetailScreen extends StatelessWidget {
           // ── Fechas ─────────────────────────────────────────────────────
           _SectionCard(
             label: 'Fechas',
-            context: context,
             children: [
-              _InfoRow('Check-in',
-                  formatDate(booking.checkIn)),
+              _InfoRow('Check-in', formatDate(booking.checkIn)),
               const Divider(height: 16),
-              _InfoRow('Check-out',
-                  formatDate(booking.checkOut)),
+              _InfoRow('Check-out', formatDate(booking.checkOut)),
               const Divider(height: 16),
               _InfoRow('Duración',
                   '$nights ${nights == 1 ? 'noche' : 'noches'}'),
@@ -233,13 +271,18 @@ class BookingDetailScreen extends StatelessWidget {
           // ── Huésped ────────────────────────────────────────────────────
           _SectionCard(
             label: 'Huésped',
-            context: context,
             children: [
               _InfoRow('Nombre', booking.guestName),
               const Divider(height: 16),
-              _InfoRow('Email', booking.guestEmail),
+              _InfoRow('Email', booking.guestEmail,
+                  onTap: () => _launchEmail(context, booking.guestEmail)),
               const Divider(height: 16),
-              _InfoRow('Teléfono', booking.guestPhone),
+              _InfoRow('WhatsApp', booking.guestPhone,
+                  onTap: () => _launchWhatsApp(context, booking.guestPhone)),
+              if (booking.guestCount != null) ...[
+                const Divider(height: 16),
+                _InfoRow('Personas', '${booking.guestCount}'),
+              ],
               if (booking.source != null) ...[
                 const Divider(height: 16),
                 _InfoRow('Canal', booking.sourceLabel),
@@ -251,11 +294,11 @@ class BookingDetailScreen extends StatelessWidget {
           if (booking.notes != null && booking.notes!.isNotEmpty)
             _SectionCard(
               label: 'Notas internas',
-              context: context,
               children: [
                 Text(
                   booking.notes!,
-                  style: const TextStyle(fontSize: 13, color: Color(0xFF3D4A5C), height: 1.5),
+                  style: const TextStyle(
+                      fontSize: 13, color: Color(0xFF3D4A5C), height: 1.5),
                 ),
               ],
             ),
@@ -263,17 +306,16 @@ class BookingDetailScreen extends StatelessWidget {
           // ── Pago ───────────────────────────────────────────────────────
           _SectionCard(
             label: 'Pago',
-            context: context,
             children: [
               _InfoRow('Precio total',
-                  'RD\$ ${booking.totalPrice.toStringAsFixed(2)}'),
+                  'RD\$ ${_fmtMoney(booking.totalPrice)}'),
               const Divider(height: 16),
               _InfoRow('Señal pagada',
-                  'RD\$ ${booking.depositPaid.toStringAsFixed(2)}'),
+                  'RD\$ ${_fmtMoney(booking.depositPaid)}'),
               const Divider(height: 16),
               _InfoRow(
                 'Saldo pendiente',
-                'RD\$ ${balanceDue.toStringAsFixed(2)}',
+                'RD\$ ${_fmtMoney(balanceDue)}',
                 valueColor: balanceDue > 0 && booking.status != 'cancelled'
                     ? const Color(0xFFE07B00)
                     : null,
@@ -299,9 +341,8 @@ class BookingDetailScreen extends StatelessWidget {
           // ── Acciones adicionales ───────────────────────────────────────
           if (booking.status == 'confirmed' ||
               booking.status == 'completed') ...[
-            _ActionTile(
-              icon: Icons.cleaning_services_outlined,
-              label: 'Checklist de limpieza',
+            _CleaningTile(
+              bookingId: booking.id,
               onTap: () => _openCleaningChecklist(context, booking),
             ),
           ],
@@ -398,18 +439,13 @@ class BookingDetailScreen extends StatelessWidget {
 // ── Widgets auxiliares ──────────────────────────────────────────────────────
 
 class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.children,
-    this.label,
-    this.context,
-  });
+  const _SectionCard({required this.children, this.label});
 
   final List<Widget> children;
   final String? label;
-  final BuildContext? context;
 
   @override
-  Widget build(BuildContext ctx) {
+  Widget build(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -422,7 +458,7 @@ class _SectionCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: Theme.of(ctx).colorScheme.primary,
+                  color: Theme.of(context).colorScheme.primary,
                   letterSpacing: 1.2,
                 ),
               ),
@@ -437,14 +473,15 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow(this.label, this.value, {this.valueColor});
+  const _InfoRow(this.label, this.value, {this.valueColor, this.onTap});
   final String label;
   final String value;
   final Color? valueColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final content = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
@@ -452,18 +489,41 @@ class _InfoRow extends StatelessWidget {
           style: const TextStyle(color: Color(0xFF6B7A99), fontSize: 13),
         ),
         Flexible(
-          child: Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-              color: valueColor ?? const Color(0xFF1A1F36),
-            ),
-            textAlign: TextAlign.right,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    color: valueColor ?? (onTap != null ? AppTheme.teal : const Color(0xFF1A1F36)),
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+              ),
+              if (onTap != null) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.open_in_new_rounded,
+                    size: 13, color: AppTheme.teal.withValues(alpha: 0.7)),
+              ],
+            ],
           ),
         ),
       ],
     );
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: content,
+        ),
+      );
+    }
+    return content;
   }
 }
 
@@ -511,6 +571,60 @@ class _ActionTile extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w500)),
         trailing: const Icon(Icons.chevron_right,
             color: Color(0xFFBBC3D8)),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _CleaningTile extends StatelessWidget {
+  const _CleaningTile({required this.bookingId, required this.onTap});
+  final String bookingId;
+  final VoidCallback onTap;
+
+  static const _statusColor = {
+    'pending':     Color(0xFF6B7A99),
+    'in_progress': AppTheme.lime,
+    'completed':   AppTheme.teal,
+  };
+  static const _statusLabel = {
+    'pending':     'Sin empezar',
+    'in_progress': 'En progreso',
+    'completed':   'Completado',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<CleaningProvider>();
+    final checklist = provider.checklists
+        .where((c) => c.bookingId == bookingId)
+        .firstOrNull;
+
+    final color = checklist != null
+        ? (_statusColor[checklist.status] ?? const Color(0xFF6B7A99))
+        : const Color(0xFF6B7A99);
+    final statusText = checklist != null
+        ? (_statusLabel[checklist.status] ?? checklist.status)
+        : null;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: ListTile(
+        leading: Icon(Icons.cleaning_services_outlined, color: color),
+        title: const Text('Checklist de limpieza',
+            style: TextStyle(fontWeight: FontWeight.w500)),
+        subtitle: statusText != null
+            ? Text(statusText, style: TextStyle(color: color, fontSize: 12))
+            : null,
+        trailing: checklist != null && checklist.status == 'completed'
+            ? const Icon(Icons.check_circle_rounded,
+                color: AppTheme.teal, size: 22)
+            : checklist != null && checklist.totalTasks > 0
+                ? Text(
+                    '${checklist.completedTasksCount}/${checklist.totalTasks}',
+                    style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                  )
+                : const Icon(Icons.chevron_right, color: Color(0xFFBBC3D8)),
         onTap: onTap,
       ),
     );

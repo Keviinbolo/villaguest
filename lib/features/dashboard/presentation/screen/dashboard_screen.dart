@@ -77,7 +77,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final bookingProvider = context.watch<BookingProvider>();
 
     if (bookingProvider.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        appBar: GradientAppBar(title: 'Dashboard'),
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     if (bookingProvider.errorMessage != null) {

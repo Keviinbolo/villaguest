@@ -36,6 +36,7 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
   double? _pricePerNight;
   String? _errorMessage;
   String? _source;
+  int _guestCount = 2;
 
   static final _emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 
@@ -102,6 +103,7 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
       status: 'pending',
       createdAt: DateTime.now(),
       source: _source,
+      guestCount: _guestCount,
     );
 
     final navigator = Navigator.of(context);
@@ -126,11 +128,12 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
 
   @override
   Widget build(BuildContext context) {
-    // Pre-rellena el precio total con pricePerNight × noches en el primer build.
-    if (!_priceInitialized) {
+    // Pre-rellena el precio total con pricePerNight × noches en cuanto
+    // los ajustes estén disponibles (el stream puede llegar tras el primer build).
+    final settingsProvider = context.watch<VillaSettingsProvider>();
+    if (!_priceInitialized && !settingsProvider.isLoading) {
       _priceInitialized = true;
-      _pricePerNight =
-          context.read<VillaSettingsProvider>().settings?.pricePerNight;
+      _pricePerNight = settingsProvider.settings?.pricePerNight;
       if (_pricePerNight != null && _pricePerNight! > 0) {
         _totalPriceController.text =
             (_pricePerNight! * _nights).toStringAsFixed(0);
@@ -213,6 +216,34 @@ class _CreateBookingDialogState extends State<CreateBookingDialog> {
                 keyboardType: TextInputType.phone,
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Número de huéspedes',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: _guestCount > 1
+                        ? () => setState(() => _guestCount--)
+                        : null,
+                  ),
+                  Text(
+                    '$_guestCount',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setState(() => _guestCount++),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(

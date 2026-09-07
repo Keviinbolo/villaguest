@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:villaguest/core/utils/date_utils.dart';
 import 'package:villaguest/features/bookings/presentation/booking_provider.dart';
+import 'package:villaguest/features/settings/presentation/providers/villa_settings_provider.dart';
 
 import '../../data/models/booking_model.dart';
-
-// ignore: unused_import — BookingModel.sourceLabels usado en el dropdown
 
 /// Diálogo para editar una reserva existente.
 /// Permite cambiar datos del huésped, fechas y precios.
@@ -32,6 +31,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
   late DateTime _checkIn;
   late DateTime _checkOut;
   String? _source;
+  late int _guestCount;
 
   bool _isSubmitting = false;
   String? _errorMessage;
@@ -58,6 +58,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     _checkIn = widget.booking.checkIn;
     _checkOut = widget.booking.checkOut;
     _source = widget.booking.source;
+    _guestCount = widget.booking.guestCount ?? 2;
     _nameController = TextEditingController(text: widget.booking.guestName);
     _emailController = TextEditingController(text: widget.booking.guestEmail);
     _phoneController = TextEditingController(text: widget.booking.guestPhone);
@@ -83,6 +84,15 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
 
   int get _nights => _checkOut.difference(_checkIn).inDays;
 
+  void _recalcPrice() {
+    final pricePerNight =
+        context.read<VillaSettingsProvider>().settings?.pricePerNight;
+    if (pricePerNight != null && pricePerNight > 0) {
+      _totalPriceController.text =
+          (pricePerNight * _nights).toStringAsFixed(0);
+    }
+  }
+
   Future<void> _pickCheckIn() async {
     final picked = await showDatePicker(
       context: context,
@@ -95,11 +105,11 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
 
     setState(() {
       _checkIn = picked;
-      // Si el nuevo check-in es igual o posterior al check-out, lo ajustamos.
       if (!_checkOut.isAfter(_checkIn)) {
         _checkOut = _checkIn.add(const Duration(days: 1));
       }
     });
+    _recalcPrice();
   }
 
   Future<void> _pickCheckOut() async {
@@ -112,6 +122,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
     );
     if (picked == null) return;
     setState(() => _checkOut = picked);
+    _recalcPrice();
   }
 
   String? _validatePositiveNumber(String? value) {
@@ -149,6 +160,7 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
       depositPaid: depositPaid,
       source: _source,
       notes: notes.isEmpty ? null : notes,
+      guestCount: _guestCount,
     );
 
     final navigator = Navigator.of(context);
@@ -242,7 +254,32 @@ class _EditBookingDialogState extends State<EditBookingDialog> {
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? 'Requerido' : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Número de huéspedes',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF6B7A99)),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: _guestCount > 1
+                        ? () => setState(() => _guestCount--)
+                        : null,
+                  ),
+                  Text(
+                    '$_guestCount',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setState(() => _guestCount++),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: _source,
                 decoration: const InputDecoration(labelText: 'Canal de reserva'),

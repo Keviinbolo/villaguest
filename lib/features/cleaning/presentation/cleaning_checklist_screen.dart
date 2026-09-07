@@ -254,6 +254,16 @@ class _TaskCard extends StatelessWidget {
                     width: 52,
                     height: 52,
                     fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppTheme.sage.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.broken_image_outlined,
+                          color: AppTheme.teal, size: 22),
+                    ),
                   ),
                 ),
               )
@@ -304,7 +314,11 @@ class _TaskCard extends StatelessWidget {
                               color: color.withValues(alpha: 0.30)),
                         ),
                         child: Text(
-                          done ? 'Completada' : 'Pendiente de foto',
+                          done
+                              ? (task.photoUrl != null
+                                  ? 'Completada'
+                                  : 'Sin foto')
+                              : 'Pendiente',
                           style: TextStyle(
                             fontSize: 10,
                             color: color,

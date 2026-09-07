@@ -312,6 +312,38 @@ class _BookingCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                    // Source + guest count
+                    if (booking.source != null || booking.guestCount != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          if (booking.source != null) ...[
+                            const Icon(Icons.travel_explore_outlined,
+                                size: 12, color: Color(0xFF6B7A99)),
+                            const SizedBox(width: 3),
+                            Text(
+                              booking.sourceLabel,
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF6B7A99)),
+                            ),
+                          ],
+                          if (booking.source != null && booking.guestCount != null)
+                            const Text('  ·  ',
+                                style: TextStyle(
+                                    fontSize: 11, color: Color(0xFF6B7A99))),
+                          if (booking.guestCount != null) ...[
+                            const Icon(Icons.person_outline,
+                                size: 12, color: Color(0xFF6B7A99)),
+                            const SizedBox(width: 3),
+                            Text(
+                              '${booking.guestCount} huéspedes',
+                              style: const TextStyle(
+                                  fontSize: 11, color: Color(0xFF6B7A99)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
                     // Balance pendiente
                     if (balanceDue > 0 && booking.status != 'cancelled') ...[
                       const SizedBox(height: 4),
